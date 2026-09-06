@@ -1,0 +1,3 @@
+@import "tailwindcss";
+@source "../vendor/folia";
+html,body,#folia-root{width:100%;height:100%;margin:0;overflow:hidden;background:#0e1420}html{font-size:16px}*{box-sizing:border-box}.folia-loading{display:grid;place-items:center;width:100%;height:100%;font:14px sans-serif;color:#aab7cb}.folia-failure{padding:40px;color:#e4ba8d;font:16px/1.8 sans-serif}

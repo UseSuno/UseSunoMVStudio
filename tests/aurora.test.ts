@@ -1,0 +1,20 @@
+import { expect, it } from 'vitest';
+import { glyphWaypoints } from '../src/aurora/glyphWaypoints';
+// Verify changing the spatial unit preserves authored timing and Unicode glyph boundaries.
+it('maps timed glyphs to Diorama waypoints without retiming them', () => {
+  const result = glyphWaypoints([{id:'a',fullText:'你 好',startTime:1,endTime:4,words:[{text:'你',startTime:1,endTime:1.3},{text:' ',startTime:1.3,endTime:2},{text:'好',startTime:2,endTime:4}]}]);
+  expect(result.map(g=>[g.fullText,g.startTime,g.endTime])).toEqual([['你',1,1.3],['好',2,4]]);
+  expect(result.every(g=>g.words.length===1 && g.renderHints)).toBe(true);
+});
+it('keeps a composed emoji as a single waypoint', () => {
+  expect(glyphWaypoints([{fullText:'👩‍🚀',startTime:0,endTime:2,words:[{text:'👩‍🚀',startTime:0,endTime:2}]}])).toHaveLength(1);
+});
+
+import { defaultProject } from '../src/domain/model';
+import { validateProject } from '../src/persistence/project';
+it('migrates the old curtain setting to a standalone theme', () => {
+  const result = validateProject({...defaultProject([]), template:'folia-aurora', auroraBackground:'curtain'});
+  expect(result.template).toBe('folia-curtain');
+  expect(result.auroraBackground).toBeUndefined();
+  expect(validateProject({...defaultProject([]), template:'folia-aurora'}).template).toBe('folia-aurora');
+});

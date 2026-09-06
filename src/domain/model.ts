@@ -1,0 +1,53 @@
+// Serializable project contracts. Times are seconds at the editing boundary.
+export type TemplateId = 'article' | 'flow' | 'tilt' | 'folia-fume' | 'folia-classic' | 'folia-partita' | 'folia-cadenza' | 'folia-tilt' | 'folia-claddagh' | 'folia-monet' | 'folia-cappella' | 'folia-diorama' | 'folia-aurora' | 'folia-curtain';
+export type Precision = 'imported' | 'manual' | 'estimated' | 'untimed';
+export type FontId = 'serif' | 'sans' | 'google' | 'noto-serif-sc' | 'noto-sans-sc' | 'lxgw-wenkai' | 'ma-shan-zheng' | 'dm-sans' | 'playfair-display' | 'local';
+export interface Word { text: string; start: number; end: number }
+export interface LyricLine { id: string; text: string; start: number | null; end: number | null; precision: Precision; words: Word[] }
+export interface Project {
+  /** Legacy import field; migrated to the curtain template when loading. */
+  auroraBackground?: 'nebula' | 'curtain';
+  version: 1; title: string; artist: string; duration: number;
+  template: TemplateId; ratio: '16:9' | '9:16' | '1:1'; palette: 'paper' | 'midnight' | 'moss';
+  font: FontId; customFontName?: string; fontWeight: number; fontScale: number; intensity: number; offset: number; estimatedReveal: boolean;
+  lines: LyricLine[]; source: string; audioName: string; seed: number;
+}
+export const templates: { id: TemplateId; name: string; english: string; description: string; number: string }[] = [
+  { id: 'folia-fume', name: '浮名', english: 'Fume · Folia', description: '整篇文字世界，连续镜头追焦', number: '01' },
+  { id: 'folia-classic', name: '流光', english: 'Classic · Folia', description: '自由词语，逐字余辉', number: '02' },
+  { id: 'folia-cadenza', name: '心象', english: 'Cadenza · Folia', description: '空间排字，碎片光束', number: '03' },
+  { id: 'folia-partita', name: '云阶', english: 'Partita · Folia', description: '错落分栏，词组推进', number: '04' },
+  { id: 'folia-tilt', name: '倾诉', english: 'Tilt · Folia', description: '倾斜重心，片段强调', number: '05' },
+  { id: 'folia-claddagh', name: '回环', english: 'Claddagh · Folia', description: '字符轨道，椭圆环绕', number: '06' },
+  { id: 'folia-monet', name: '莫奈', english: 'Monet · Folia', description: '海报构图，流动歌词', number: '07' },
+  { id: 'folia-cappella', name: '群唱', english: 'Cappella · Folia', description: '聊天气泡，多人对唱', number: '08' },
+  { id: 'folia-diorama', name: '镜台', english: 'Diorama · Folia', description: '三维歌词，镜头穿行', number: '09' },
+  { id: 'folia-aurora', name: '极光', english: 'Aurora · Nebula', description: '星云纵深，逐字穿越', number: '10' },
+  { id: 'folia-curtain', name: '光幕', english: 'Aurora · Curtain', description: '流动光帘，逐字穿越', number: '11' },
+];
+export const palettes = {
+  paper: { bg: '#e9e4d9', ink: '#29302b', accent: '#ae563e', muted: '#aaa698' },
+  midnight: { bg: '#191e24', ink: '#f0e7d6', accent: '#d5b47d', muted: '#62686c' },
+  moss: { bg: '#233e36', ink: '#ece8d8', accent: '#c8df91', muted: '#6f8979' },
+};
+export const demoSource = `[00:02.00]风把远方写成了诗
+[00:07.00]落在你经过的城市
+[00:12.00]我们沿着光的方向
+[00:17.00]把平凡的日子珍藏
+[00:24.00]如果时间是一片海
+[00:29.00]就让回声慢慢盛开
+[00:34.00]所有未说出口的话
+[00:39.00]都在这一刻抵达`;
+export function defaultProject(lines: LyricLine[]): Project {
+  return { version: 1, title: '把日子写成诗', artist: '原创演示 · 环境音', duration: 46, template: 'folia-fume', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, lines, source: demoSource, audioName: '', seed: 42 };
+}
+export function dimensions(ratio: Project['ratio'], height = 720): [number, number] {
+  if (ratio === '9:16') return [Math.round(height * 9 / 16 / 2) * 2, height];
+  return [ratio === '1:1' ? height : Math.round(height * 16 / 9 / 2) * 2, height];
+}
+export const clamp = (x: number, min = 0, max = 1) => Math.min(max, Math.max(min, x));
+export const ease = (x: number) => { const t = clamp(x); return t * t * (3 - 2 * t); };
+export function timeLabel(t: number) { const s = Math.max(0, t); return `${Math.floor(s / 60).toString().padStart(2, '0')}:${Math.floor(s % 60).toString().padStart(2, '0')}.${Math.floor((s % 1) * 10)}`; }
+export function activeLine(lines: LyricLine[], t: number) {
+  return lines.findLastIndex(l => l.start !== null && l.end !== null && t >= l.start && t < l.end);
+}
