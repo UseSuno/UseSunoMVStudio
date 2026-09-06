@@ -4,7 +4,7 @@ import { DEFAULT_DIORAMA_TUNING } from '../vendor/folia/types';
 import { glyphWaypoints } from './glyphWaypoints';
 import type { VisualizerSharedProps } from '../vendor/folia/components/visualizer/definition';
 
-// Studio's original Aurora treatment: Diorama receives one waypoint per grapheme.
+// Studio's Aurora treatment: Diorama receives one waypoint per CJK glyph or Latin word.
 // The background now comes from the independent background selector.
 export default function AuroraStudio(props: VisualizerSharedProps) {
   const lines = useMemo(() => glyphWaypoints(props.lines), [props.lines]);
