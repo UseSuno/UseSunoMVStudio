@@ -62,7 +62,11 @@ function FoliaHost() {
         refs.current.previous = t;
         time.set(t); setPaused(!e.data.playing);
         const live = refs.current.lines.findLastIndex((l, i, all) => t >= l.startTime && t < Math.min(getLineRenderEndTime(l), all[i + 1]?.startTime ?? Infinity)); setIndex(old => old === live ? old : live);
-        const level = Math.max(0, Math.min(1, Number(e.data.power) || 0)); power.set(level); bass.set(level * 0.75); lowMid.set(level * 0.7); mid.set(level * 0.8); vocal.set(level); treble.set(level * 0.5);
+        const sample = e.data.audio && typeof e.data.audio === 'object' ? e.data.audio : {};
+        const amount = Math.max(0, Math.min(1, p.audioReactivityAmount ?? .7));
+        const gain = p.audioReactivity === 'off' ? 0 : amount * (p.audioReactivity === 'rhythmic' ? 1.35 : .85);
+        const signal = (key: string) => Math.max(0, Math.min(255, (Number(sample[key]) || 0) * gain));
+        power.set(signal('power')); bass.set(signal('bass')); lowMid.set(signal('lowMid')); mid.set(signal('mid')); vocal.set(signal('vocal')); treble.set(signal('treble'));
       }
     };
     window.addEventListener('message', handle); parent.postMessage({ type: 'verse:ready' }, location.origin);
@@ -74,13 +78,13 @@ function FoliaHost() {
   const renderer = <Renderer currentTime={time} currentLineIndex={index} lines={lines} theme={theme} audioPower={power} audioBands={{ bass, lowMid, mid, vocal, treble }} paused={paused} showText seed={project.seed} lyricsFontScale={project.fontScale} isDaylight={project.palette === 'paper'} songTitle={project.title} songArtist={project.artist} coverUrl={artwork.coverUrl} monetPortraitImage={artwork.portraitUrl ? { id: 'studio-monet-portrait', name: project.monetPortraitName || '自定义图片', url: artwork.portraitUrl } : null} isPlayerChromeHidden hideTranslationSubtitle showSubtitleTranslation={false}
     background={customAurora ? { transparent: true } : { mode: project.background }}
     fumeTuning={{ ...DEFAULT_FUME_TUNING, cameraSpeed: project.intensity, disableGeometricBackground: false }}
-    dioramaTuning={{ ...DEFAULT_DIORAMA_TUNING, cameraSpeed: project.intensity, motionAmount: project.intensity, audioReactivity: .25 }}
-    monetTuning={{ ...DEFAULT_MONET_TUNING, showAudioVisualization: false, portraitSource: project.monetPortraitSource, portraitStyle: project.monetPortraitStyle, portraitOffsetX: project.monetPortraitOffsetX, showPortraitDragHanger: false }}
+    dioramaTuning={{ ...DEFAULT_DIORAMA_TUNING, cameraSpeed: project.intensity, motionAmount: project.intensity, audioReactivity: project.audioReactivity === 'off' ? 0 : project.audioReactivityAmount * (project.audioReactivity === 'rhythmic' ? .8 : .38) }}
+    monetTuning={{ ...DEFAULT_MONET_TUNING, showAudioVisualization: project.monetAudioVisualization, audioStyle: project.monetAudioStyle, portraitSource: project.monetPortraitSource, portraitStyle: project.monetPortraitStyle, portraitOffsetX: project.monetPortraitOffsetX, showPortraitDragHanger: false }}
     pendoloTuning={{ ...DEFAULT_PENDOLO_TUNING, tickSnappiness: Math.max(.6, project.intensity * 2), activeScale: 1.15 + project.intensity * .1 }}
     sonnetTuning={{ ...DEFAULT_SONNET_TUNING, cameraIntensity: project.intensity, typographyMotion: project.intensity }}
     temperaTuning={{ ...DEFAULT_TEMPERA_TUNING, cameraIntensity: project.intensity, glyphMotion: project.intensity, layerImages: project.temperaLayerImages }}
     onLyricLineSeek={lyricTime => parent.postMessage({ type: 'verse:seek', time: lyricTime + project.offset }, location.origin)}/>;
-  return <Boundary key={`${project.template}-${epoch}-${fontsEpoch}`}><Suspense fallback={<div className="folia-loading">正在加载原版动画…</div>}><div className="relative h-full w-full overflow-hidden">{customAurora ? <StudioAuroraBackground mode={project.background === 'aurora-curtain' ? 'aurora-curtain' : 'aurora-nebula'} currentTime={time} theme={theme} isDaylight={project.palette === 'paper'}/> : null}{renderer}</div></Suspense></Boundary>;
+  return <Boundary key={`${project.template}-${epoch}-${fontsEpoch}`}><Suspense fallback={<div className="folia-loading">正在加载原版动画…</div>}><div className="relative h-full w-full overflow-hidden">{customAurora ? <StudioAuroraBackground mode={project.background === 'aurora-curtain' ? 'aurora-curtain' : 'aurora-nebula'} currentTime={time} audioBands={{ bass, lowMid, mid, vocal, treble }} theme={theme} isDaylight={project.palette === 'paper'}/> : null}{renderer}</div></Suspense></Boundary>;
 }
 const root = createRoot(document.getElementById('folia-root')!);
 root.render(<FoliaHost/>);

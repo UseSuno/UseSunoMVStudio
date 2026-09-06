@@ -14,6 +14,11 @@ describe('lyric import', () => {
 });
 describe('project validation', () => {
   it('roundtrips a valid versioned project', () => { const p = defaultProject(parseLyrics('[00:00.00]Hello', 46).lines); expect(validateProject(JSON.parse(JSON.stringify(p)))).toEqual(p); });
+  it('adds audio visualization defaults to older projects', () => {
+    const saved = { ...defaultProject([]) } as Partial<ReturnType<typeof defaultProject>>;
+    delete saved.audioReactivity; delete saved.audioReactivityAmount; delete saved.monetAudioVisualization; delete saved.monetAudioStyle;
+    expect(validateProject(saved)).toMatchObject({ audioReactivity: 'gentle', audioReactivityAmount: .7, monetAudioVisualization: true, monetAudioStyle: 'bar' });
+  });
   it('rejects unsupported schema, unbounded geometry and malformed timelines', () => { const p = defaultProject([]); expect(() => validateProject({ ...p, version: 9 })).toThrow(); expect(() => validateProject({ ...p, fontScale: Infinity })).toThrow(); expect(() => validateProject({ ...p, lines: [{ id: 'a', text: 'x', start: 5, end: 2, precision: 'manual', words: [] }] })).toThrow(); });
 });
 

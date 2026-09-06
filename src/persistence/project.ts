@@ -26,6 +26,10 @@ export function validateProject(value: unknown): Project {
   if (p.monetPortraitSource !== undefined && !['cover','custom'].includes(p.monetPortraitSource)) throw new Error('莫奈图片来源无效。');
   if (p.monetPortraitStyle !== undefined && !['square','rectangular'].includes(p.monetPortraitStyle)) throw new Error('莫奈图片比例无效。');
   if (p.monetPortraitOffsetX !== undefined && !finite(p.monetPortraitOffsetX, -500, 500)) throw new Error('莫奈图片偏移无效。');
+  if (p.audioReactivity !== undefined && !['off','gentle','rhythmic'].includes(p.audioReactivity)) throw new Error('音乐响应模式无效。');
+  if (p.audioReactivityAmount !== undefined && !finite(p.audioReactivityAmount, 0, 1)) throw new Error('音乐响应强度无效。');
+  if (p.monetAudioVisualization !== undefined && typeof p.monetAudioVisualization !== 'boolean') throw new Error('莫奈频谱设置无效。');
+  if (p.monetAudioStyle !== undefined && !['bar','line'].includes(p.monetAudioStyle)) throw new Error('莫奈频谱样式无效。');
   if (p.monetPortraitName !== undefined && (typeof p.monetPortraitName !== 'string' || p.monetPortraitName.length > 300)) throw new Error('莫奈图片名称无效。');
   if (p.monetPortraitMimeType !== undefined && typeof p.monetPortraitMimeType !== 'string') throw new Error('莫奈图片类型无效。');
   if (p.coverMimeType !== undefined && typeof p.coverMimeType !== 'string') throw new Error('封面图片类型无效。');
@@ -41,7 +45,7 @@ export function validateProject(value: unknown): Project {
   }
   const legacyBackground = p.template === 'folia-curtain' || (p.template === 'folia-aurora' && p.auroraBackground === 'curtain') ? 'aurora-curtain' : p.template === 'folia-aurora' ? 'aurora-nebula' : undefined;
   const background = legacyBackground ?? (['common', 'latent', 'aurora-nebula', 'aurora-curtain'].includes(p.background) ? p.background : 'latent');
-  const migrated: Project = { ...p, version: 2, background, temperaLayerImages: p.temperaLayerImages ?? [], monetPortraitSource: p.monetPortraitSource ?? 'cover', monetPortraitStyle: p.monetPortraitStyle ?? 'square', monetPortraitOffsetX: p.monetPortraitOffsetX ?? 0, fontWeight: finite(p.fontWeight, 100, 900) ? p.fontWeight : 600 };
+  const migrated: Project = { ...p, version: 2, background, audioReactivity: p.audioReactivity ?? 'gentle', audioReactivityAmount: p.audioReactivityAmount ?? .7, temperaLayerImages: p.temperaLayerImages ?? [], monetPortraitSource: p.monetPortraitSource ?? 'cover', monetPortraitStyle: p.monetPortraitStyle ?? 'square', monetPortraitOffsetX: p.monetPortraitOffsetX ?? 0, monetAudioVisualization: p.monetAudioVisualization ?? true, monetAudioStyle: p.monetAudioStyle ?? 'bar', fontWeight: finite(p.fontWeight, 100, 900) ? p.fontWeight : 600 };
   if (p.template === 'folia-curtain') migrated.template = 'folia-aurora';
   delete migrated.auroraBackground;
   if (['article','flow','tilt'].includes(p.template)) migrated.template = ({ article: 'folia-fume', flow: 'folia-classic', tilt: 'folia-tilt' } as const)[p.template as 'article' | 'flow' | 'tilt'];

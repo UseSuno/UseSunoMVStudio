@@ -53,6 +53,9 @@
     uniform vec3 u_orange;
     uniform vec3 u_warm_yellow;
     uniform vec3 u_cyan_rim;
+    uniform float u_audio_bass;
+    uniform float u_audio_vocal;
+    uniform float u_audio_treble;
 
     float random2d(vec2 point, float time) {
       vec3 point3 = fract(vec3(point.xy, time) * 0.1031);
@@ -132,6 +135,7 @@
         vec3 baseColor = mix(intermediateColor, u_warm_yellow, orangeToYellow);
         float cyanHighlight = smoothstep(0.6, 0.75, lightGradient);
         baseColor = mix(baseColor, u_cyan_rim, cyanHighlight);
+        baseColor = mix(baseColor, u_cyan_rim, u_audio_vocal * 0.055);
 
         vec2 epsilon = vec2(0.01, 0.0);
         vec3 normal = normalize(vec3(
@@ -145,8 +149,8 @@
 
         vec3 emission = litColor * max(lightGradient, 0.0) * 23.0;
         // A wider density shoulder gives the moving ribbon a soft optical bloom.
-        float density = smoothstep(1.9, -0.08, distanceToSurface) * 0.9;
-        accumulatedColor += emission * density;
+        float density = smoothstep(1.9, -0.08, distanceToSurface) * 0.9 * (1.0 + u_audio_bass * 0.12);
+        accumulatedColor += emission * density * (1.0 + u_audio_vocal * 0.07);
 
         rayDistance += min(distanceToSurface, 1.0);
       }
@@ -154,7 +158,7 @@
       vec3 finalColor = toneMap(accumulatedColor / 2.8);
       vec2 noiseCoordinate = floor(fragmentCoordinate / 0.5);
       float filmGrain = random2d(noiseCoordinate, 0.0);
-      finalColor += (filmGrain - 0.5) * 0.008;
+      finalColor += (filmGrain - 0.5) * (0.008 + u_audio_treble * 0.003);
 
       gl_FragColor = vec4(finalColor, 1.0);
     }
@@ -219,6 +223,7 @@
       this._renderScale = this.options.renderScale === "auto" ? null : Number(this.options.renderScale);
       this._targetSchemeIndex = 0;
       this._schemeProgress = 0;
+      this._audioResponse = { bass: 0, vocal: 0, treble: 0 };
       this._pixelBuffer = new Uint8Array(4);
       this._pointer = { x: 0, y: 0 };
       this._smoothedPointer = { x: 0, y: 0 };
@@ -280,7 +285,10 @@
         deepBlue: gl.getUniformLocation(this.program, "u_deep_blue"),
         orange: gl.getUniformLocation(this.program, "u_orange"),
         warmYellow: gl.getUniformLocation(this.program, "u_warm_yellow"),
-        cyanRim: gl.getUniformLocation(this.program, "u_cyan_rim")
+        cyanRim: gl.getUniformLocation(this.program, "u_cyan_rim"),
+        audioBass: gl.getUniformLocation(this.program, "u_audio_bass"),
+        audioVocal: gl.getUniformLocation(this.program, "u_audio_vocal"),
+        audioTreble: gl.getUniformLocation(this.program, "u_audio_treble")
       };
 
       this.isSupported = true;
@@ -443,6 +451,9 @@
       gl.uniform3fv(this.uniforms.orange, palette.orange);
       gl.uniform3fv(this.uniforms.warmYellow, palette.warmYellow);
       gl.uniform3fv(this.uniforms.cyanRim, palette.cyanRim);
+      gl.uniform1f(this.uniforms.audioBass, this._audioResponse.bass);
+      gl.uniform1f(this.uniforms.audioVocal, this._audioResponse.vocal);
+      gl.uniform1f(this.uniforms.audioTreble, this._audioResponse.treble);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
       if (
@@ -504,6 +515,12 @@
     setSchemeProgress(progressValue) {
       const maxIndex = Math.max(0, this.options.schemes.length - 1);
       this._schemeProgress = Math.max(0, Math.min(maxIndex, Number(progressValue) || 0));
+    }
+
+    setAudioResponse(values = {}) {
+      this._audioResponse.bass = clamp01(Number(values.bass) || 0);
+      this._audioResponse.vocal = clamp01(Number(values.vocal) || 0);
+      this._audioResponse.treble = clamp01(Number(values.treble) || 0);
     }
 
     setOptions(partialOptions = {}) {

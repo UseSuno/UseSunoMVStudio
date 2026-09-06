@@ -4,6 +4,7 @@ import type { PlaybackClock } from '../audio/clock';
 import { foliaTheme } from '../folia/adapter';
 import type { ExportOptions } from './video';
 import { recordingMime } from './realtime';
+import { sampleAudioAnalysis, type AudioAnalysis } from '../audio/analysis';
 // Record upstream frames, never substitute the legacy Studio renderer for a Folia template.
 interface CroppableTrack extends MediaStreamTrack { cropTo(target: unknown): Promise<void> }
 interface CropAPI { fromElement(element: Element): Promise<unknown> }
@@ -16,7 +17,7 @@ function collectCanvasLayers(root: Document | ShadowRoot | Element, output: HTML
   }
   return output;
 }
-export async function recordFolia(project: Project, buffer: AudioBuffer, peaks: number[], options: ExportOptions, clock: PlaybackClock, signal: AbortSignal, report: (p: number, s: string) => void): Promise<Blob> {
+export async function recordFolia(project: Project, buffer: AudioBuffer, audioAnalysis: AudioAnalysis, options: ExportOptions, clock: PlaybackClock, signal: AbortSignal, report: (p: number, s: string) => void): Promise<Blob> {
   const iframe = document.querySelector<HTMLIFrameElement>('.folia-stage-frame');
   if (!iframe?.contentWindow || !iframe.contentDocument) throw new Error('Folia 舞台尚未加载。');
   const mime = recordingMime(options.format); if (!mime) throw new Error('此浏览器不支持所选录制格式。');
@@ -31,7 +32,7 @@ export async function recordFolia(project: Project, buffer: AudioBuffer, peaks: 
   const hidden = () => { if (document.hidden) { failure = new Error('录制中断：请保持 Studio 页面可见。'); stop(); } };
   const stoppedSharing = () => { failure = new Error('页面共享已停止，录制取消。'); stop(); };
   const check = () => { if (signal.aborted) throw new DOMException('已取消导出', 'AbortError'); };
-  const tick = (t: number, playing: boolean) => iframe.contentWindow!.postMessage({ type: 'verse:tick', time: t, playing, power: peaks[Math.min(peaks.length - 1, Math.floor(t / project.duration * peaks.length))] ?? 0 }, location.origin);
+  const tick = (t: number, playing: boolean) => iframe.contentWindow!.postMessage({ type: 'verse:tick', time: t, playing, audio: sampleAudioAnalysis(audioAnalysis, t) }, location.origin);
   const draw = () => {
     ctx.fillStyle = foliaTheme(project).backgroundColor; ctx.fillRect(0, 0, width, height);
     if (screenVideo && screenVideo.readyState >= 2) { ctx.drawImage(screenVideo, 0, 0, width, height); return; }

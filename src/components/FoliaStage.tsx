@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { dimensions, type Project } from '../domain/model';
 import type { PlaybackClock } from '../audio/clock';
+import { sampleAudioAnalysis, type AudioAnalysis } from '../audio/analysis';
 // Keep source renderers isolated from the editor's CSS and physical viewport dimensions.
-export function FoliaStage({ project, peaks, clock, fontBlob, coverBlob, monetPortraitBlob }: { project: Project; peaks: number[]; clock: PlaybackClock; fontBlob: Blob | null; coverBlob: Blob | null; monetPortraitBlob: Blob | null }) {
+export function FoliaStage({ project, audioAnalysis, clock, fontBlob, coverBlob, monetPortraitBlob }: { project: Project; audioAnalysis: AudioAnalysis; clock: PlaybackClock; fontBlob: Blob | null; coverBlob: Blob | null; monetPortraitBlob: Blob | null }) {
   const host = useRef<HTMLDivElement>(null), frame = useRef<HTMLIFrameElement>(null), ready = useRef(false);
-  const latest = useRef({ project, peaks }); latest.current = { project, peaks };
+  const latest = useRef({ project, audioAnalysis }); latest.current = { project, audioAnalysis };
   const [w, h] = dimensions(project.ratio, 720);
   const artwork = useMemo(() => ({ coverUrl: coverBlob ? URL.createObjectURL(coverBlob) : null, portraitUrl: monetPortraitBlob ? URL.createObjectURL(monetPortraitBlob) : null }), [coverBlob, monetPortraitBlob]);
   useEffect(() => () => { if (artwork.coverUrl) URL.revokeObjectURL(artwork.coverUrl); if (artwork.portraitUrl) URL.revokeObjectURL(artwork.portraitUrl); }, [artwork]);
@@ -24,7 +25,7 @@ export function FoliaStage({ project, peaks, clock, fontBlob, coverBlob, monetPo
       if (e.data?.type === 'verse:seek' && Number.isFinite(e.data.time)) clock.seek(e.data.time);
     };
     window.addEventListener('message', listener); let id = 0;
-    const tick = () => { const { project: p, peaks } = latest.current, t = clock.tick(); if (ready.current && !clock.exporting) frame.current?.contentWindow?.postMessage({ type: 'verse:tick', time: t, playing: clock.playing, power: peaks[Math.min(peaks.length - 1, Math.floor(t / p.duration * peaks.length))] ?? 0 }, location.origin); id = requestAnimationFrame(tick); }; tick();
+    const tick = () => { const { audioAnalysis } = latest.current, t = clock.tick(); if (ready.current && !clock.exporting) frame.current?.contentWindow?.postMessage({ type: 'verse:tick', time: t, playing: clock.playing, audio: sampleAudioAnalysis(audioAnalysis, t) }, location.origin); id = requestAnimationFrame(tick); }; tick();
     return () => { cancelAnimationFrame(id); window.removeEventListener('message', listener); };
   }, [clock, fontBlob, artwork]);
   return <div className="folia-stage-host" ref={host}><iframe ref={frame} src="/folia.html" title="Folia 原版歌词动画" className="folia-stage-frame" style={{ width: w, height: h }} /></div>;

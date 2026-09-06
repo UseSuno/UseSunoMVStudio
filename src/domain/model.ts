@@ -12,9 +12,11 @@ export interface Project {
   version: 2; title: string; artist: string; duration: number;
   template: TemplateId; background: BackgroundId; ratio: '16:9' | '9:16' | '1:1'; palette: 'paper' | 'midnight' | 'moss';
   font: FontId; customFontName?: string; fontWeight: number; fontScale: number; intensity: number; offset: number; estimatedReveal: boolean;
+  audioReactivity: 'off' | 'gentle' | 'rhythmic'; audioReactivityAmount: number;
   temperaLayerImages: TemperaProjectImage[];
   coverMimeType?: string; monetPortraitSource: 'cover' | 'custom'; monetPortraitName?: string; monetPortraitMimeType?: string;
   monetPortraitStyle: 'square' | 'rectangular'; monetPortraitOffsetX: number;
+  monetAudioVisualization: boolean; monetAudioStyle: 'bar' | 'line';
   lines: LyricLine[]; source: string; audioName: string; seed: number;
 }
 export const templates: { id: TemplateId; name: string; english: string; description: string; number: string }[] = [
@@ -53,7 +55,7 @@ export const demoSource = `[00:02.00]风把远方写成了诗
 [00:34.00]所有未说出口的话
 [00:39.00]都在这一刻抵达`;
 export function defaultProject(lines: LyricLine[]): Project {
-  return { version: 2, title: '把日子写成诗', artist: '原创演示 · 环境音', duration: 46, template: 'folia-fume', background: 'latent', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, temperaLayerImages: [], monetPortraitSource: 'cover', monetPortraitStyle: 'square', monetPortraitOffsetX: 0, lines, source: demoSource, audioName: '', seed: 42 };
+  return { version: 2, title: '把日子写成诗', artist: '原创演示 · 环境音', duration: 46, template: 'folia-fume', background: 'latent', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, audioReactivity: 'gentle', audioReactivityAmount: .7, temperaLayerImages: [], monetPortraitSource: 'cover', monetPortraitStyle: 'square', monetPortraitOffsetX: 0, monetAudioVisualization: true, monetAudioStyle: 'bar', lines, source: demoSource, audioName: '', seed: 42 };
 }
 export function dimensions(ratio: Project['ratio'], height = 720): [number, number] {
   if (ratio === '9:16') return [Math.round(height * 9 / 16 / 2) * 2, height];

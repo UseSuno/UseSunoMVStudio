@@ -14,5 +14,5 @@ export default function AuroraStudio(props: VisualizerSharedProps) {
     update(props.currentTime.get());
     return props.currentTime.on('change', update);
   }, [lines, props.currentTime]);
-  return <VisualizerDiorama key={lines.map(line => `${line.fullText}:${line.startTime}:${line.endTime}`).join("|")} {...props} lines={lines} currentLineIndex={index} dioramaTuning={{...DEFAULT_DIORAMA_TUNING, cameraSpeed:1.15, motionAmount:0.55, audioReactivity:0, glowIntensity:0.65, soulEnabled:false, gradientEnabled:true, gradientIntensity:0.6}} hideTranslationSubtitle showSubtitleTranslation={false}/>;
+  return <VisualizerDiorama key={lines.map(line => `${line.fullText}:${line.startTime}:${line.endTime}`).join("|")} {...props} lines={lines} currentLineIndex={index} dioramaTuning={{...DEFAULT_DIORAMA_TUNING, cameraSpeed:1.15, motionAmount:0.55, audioReactivity:props.dioramaTuning?.audioReactivity ?? 0, glowIntensity:0.65, soulEnabled:false, gradientEnabled:true, gradientIntensity:0.6}} hideTranslationSubtitle showSubtitleTranslation={false}/>;
 }

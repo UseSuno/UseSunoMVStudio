@@ -4,6 +4,7 @@ import { dimensions, type Project } from '../domain/model';
 import { ensureProjectFont } from '../fonts/fonts';
 import { foliaTheme } from '../folia/adapter';
 import type { ExportOptions } from './video';
+import { sampleAudioAnalysis, type AudioAnalysis } from '../audio/analysis';
 
 const nextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const captureFrame = (target: Window, signal: AbortSignal) => new Promise<ImageBitmap>((resolve, reject) => {
@@ -25,7 +26,7 @@ const captureFrame = (target: Window, signal: AbortSignal) => new Promise<ImageB
 const supportedCanvasTemplates = new Set(['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-curtain', 'folia-tempera', 'folia-sonnet']);
 
 // Canvas and WebGL templates can advance their media clock frame-by-frame without playing the audio.
-export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, peaks: number[], options: ExportOptions, clock: PlaybackClock, signal: AbortSignal, report: (progress: number, text: string) => void) {
+export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, audioAnalysis: AudioAnalysis, options: ExportOptions, clock: PlaybackClock, signal: AbortSignal, report: (progress: number, text: string) => void) {
   if (!supportedCanvasTemplates.has(project.template)) throw new Error('此主题包含基于真实时间的 DOM 动画，暂时只能使用兼容录制。');
   const iframe = document.querySelector<HTMLIFrameElement>('.folia-stage-frame');
   if (!iframe?.contentWindow) throw new Error('动画舞台尚未准备好。');
@@ -39,7 +40,7 @@ export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, p
   output.addVideoTrack(video, { frameRate: options.fps }); output.addAudioTrack(audio);
   const oldTime = clock.time, oldStyle = { width: iframe.style.width, height: iframe.style.height };
   const check = () => { if (signal.aborted) throw new DOMException('已取消导出', 'AbortError'); };
-  const tick = (time: number) => iframe.contentWindow!.postMessage({ type: 'verse:tick', time, playing: true, power: peaks[Math.min(peaks.length - 1, Math.floor(time / project.duration * peaks.length))] ?? 0 }, location.origin);
+  const tick = (time: number) => iframe.contentWindow!.postMessage({ type: 'verse:tick', time, playing: true, audio: sampleAudioAnalysis(audioAnalysis, time) }, location.origin);
   try {
     clock.pause(); clock.exporting = true; await ensureProjectFont(project);
     iframe.style.width = `${width}px`; iframe.style.height = `${height}px`;

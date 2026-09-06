@@ -6,6 +6,7 @@ import { downloadBlob } from '../persistence/project';
 import { Modal } from './Modal';
 import { VideoResult } from './VideoResult';
 import { supportsFastExport } from '../folia/registry';
+import type { AudioAnalysis } from '../audio/analysis';
 
 export interface ExportArtifact {
   blob: Blob;
@@ -16,7 +17,7 @@ export interface ExportArtifact {
   createdAt: number;
 }
 // Encoding loads only when the export surface is opened.
-export function ExportModal({ project, buffer, peaks, close, clock, artifact, setArtifact }: { project: Project; buffer: AudioBuffer | null; peaks: number[]; clock: PlaybackClock; close: () => void; artifact: ExportArtifact | null; setArtifact: (artifact: ExportArtifact | null) => void }) {
+export function ExportModal({ project, buffer, peaks, audioAnalysis, close, clock, artifact, setArtifact }: { project: Project; buffer: AudioBuffer | null; peaks: number[]; audioAnalysis: AudioAnalysis; clock: PlaybackClock; close: () => void; artifact: ExportArtifact | null; setArtifact: (artifact: ExportArtifact | null) => void }) {
   const fastFolia = supportsFastExport(project.template);
   const [height, setHeight] = useState(720), [format, setFormat] = useState<'mp4' | 'webm'>('mp4'), [mode, setMode] = useState<'offline' | 'realtime'>(!project.template.startsWith('folia-') || fastFolia ? 'offline' : 'realtime');
   const [range, setRange] = useState({ start: 0, end: project.duration });
@@ -42,7 +43,7 @@ export function ExportModal({ project, buffer, peaks, close, clock, artifact, se
     if (!buffer || !validRange) return;
     setRunning(true); setError(''); setProgress(0); setStatus('准备字体与编码器…'); controller.current = new AbortController();
     try { const options = { height, fps: 30, start: range.start, end: range.end, format }; const report = (p: number, text: string) => { setProgress(p); setStatus(text); };
-      const blob = project.template.startsWith('folia-') ? mode === 'offline' ? await (await import('../export/foliaFrames')).exportFoliaFrames(project, buffer, peaks, options, clock, controller.current.signal, report) : await (await import('../export/folia')).recordFolia(project, buffer, peaks, options, clock, controller.current.signal, report) : mode === 'offline' ? await (await import('../export/video')).exportVideo(project, buffer, peaks, options, controller.current.signal, report) : await (await import('../export/realtime')).recordVideo(project, buffer, peaks, options, controller.current.signal, report);
+      const blob = project.template.startsWith('folia-') ? mode === 'offline' ? await (await import('../export/foliaFrames')).exportFoliaFrames(project, buffer, audioAnalysis, options, clock, controller.current.signal, report) : await (await import('../export/folia')).recordFolia(project, buffer, audioAnalysis, options, clock, controller.current.signal, report) : mode === 'offline' ? await (await import('../export/video')).exportVideo(project, buffer, peaks, options, controller.current.signal, report) : await (await import('../export/realtime')).recordVideo(project, buffer, peaks, options, controller.current.signal, report);
       setArtifact({ blob, filename: `${project.title}.${format}`, width: w, height: h, format, createdAt: Date.now() }); setProgress(1); setStatus('视频已生成，可下载');
     } catch (e) { setError(e instanceof Error ? e.message : '导出失败'); } finally { setRunning(false); }
   };

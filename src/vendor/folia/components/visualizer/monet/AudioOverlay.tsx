@@ -230,9 +230,7 @@ const AudioOverlay: React.FC<AudioOverlayProps> = ({
                     const band = hasRawSpectrum
                         ? sampleRawSpectrumProfile(rawSpectrum, spectrumIndex)
                         : sampleSpectrumProfile(bands, spectrumIndex);
-                    const wave =
-                        Math.sin(index * 0.24 + performance.now() * 0.004) * 0.08 +
-                        Math.sin(index * 0.68 + performance.now() * 0.0028) * 0.05;
+                    const wave = Math.sin(index * 0.24 + band * 2.4) * 0.08 + Math.sin(index * 0.68 + energy * 1.7) * 0.05;
                     
                     const envelope = Math.sin(spectrumIndex * Math.PI);
                     const amplitude = energy * 0.04 + band * 0.8 + wave * 0.04;
@@ -276,7 +274,7 @@ const AudioOverlay: React.FC<AudioOverlayProps> = ({
                     const band = hasRawSpectrum
                         ? sampleRawSpectrumProfile(rawSpectrum, spectrumIndex)
                         : sampleSpectrumProfile(bands, spectrumIndex);
-                    const pulse = Math.sin(index * 0.45 + performance.now() * 0.006) * 0.5 + 0.5;
+                    const pulse = Math.sin(index * 0.45 + band * 2.8 + energy) * 0.5 + 0.5;
                     
                     const envelope = Math.sin(spectrumIndex * Math.PI);
                     const barHeight = height * (0.02 + (energy * 0.04 + band * 0.82 + pulse * 0.02) * envelope);
