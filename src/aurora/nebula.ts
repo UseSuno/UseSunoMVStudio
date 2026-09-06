@@ -499,6 +499,13 @@
       }
     }
 
+    // Set an exact continuous palette position for media-clock-driven renders.
+    // Unlike setScheme(), this is deterministic when seeking or exporting frames.
+    setSchemeProgress(progressValue) {
+      const maxIndex = Math.max(0, this.options.schemes.length - 1);
+      this._schemeProgress = Math.max(0, Math.min(maxIndex, Number(progressValue) || 0));
+    }
+
     setOptions(partialOptions = {}) {
       if (!partialOptions || typeof partialOptions !== "object") return;
       this.options = { ...this.options, ...partialOptions };
