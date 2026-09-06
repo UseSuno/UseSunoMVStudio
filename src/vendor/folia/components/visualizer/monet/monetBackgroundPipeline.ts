@@ -81,11 +81,8 @@ const resolveCanvasImageDimension = (
     dimension: 'width' | 'height',
     fallback: number,
 ) => {
-    if (!(dimension in image)) {
-        return fallback;
-    }
-
-    const value = image[dimension];
+    const dimensions = image as CanvasImageSource & Partial<Record<'width' | 'height', unknown>>;
+    const value = dimensions[dimension];
     return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 };
 
@@ -232,6 +229,10 @@ const paintMonetOverlay = (
     context.fillStyle = rightVeil;
     context.fillRect(0, 0, width, height);
 
+    if (tuning.backgroundStreaksEnabled === false) {
+        return;
+    }
+
     context.fillStyle = colorWithAlpha(theme.backgroundColor, 0.1 + overlay * 0.08);
     for (let index = 0; index < 18; index += 1) {
         const x = (index * 127) % width;
@@ -262,6 +263,9 @@ export const getMonetBackgroundCacheKey = ({
         backgroundWash: tuning.backgroundWash,
         backgroundWashColorMode: tuning.backgroundWashColorMode,
         backgroundWashCustomColor: tuning.backgroundWashCustomColor,
+        // Drift is a DOM-side transform and never reaches the bitmap, so it stays out of the key
+        // the same way backgroundLayout does; streaks are baked in and must invalidate it.
+        backgroundStreaksEnabled: tuning.backgroundStreaksEnabled,
     },
 });
 

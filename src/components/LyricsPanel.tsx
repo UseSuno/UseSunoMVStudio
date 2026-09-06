@@ -7,16 +7,16 @@ import type { PlaybackClock } from '../audio/clock';
 export function LyricsPanel({ project, commit, selected, select, clock, paste, importFile, openTimestamp, notify }: { project: Project; commit: (p: Project | ((p: Project) => Project)) => void; selected: string | null; select: (id: string) => void; clock: PlaybackClock; paste: () => void; importFile: () => void; openTimestamp: () => void; notify: (s: string) => void }) {
   const [active, setActive] = useState(-1);
   useEffect(() => { const id = setInterval(() => setActive(activeLine(project.lines, clock.time - project.offset)), 100); return () => clearInterval(id); }, [project.lines, project.offset, clock]);
-  const update = (id: string, patch: Partial<LyricLine>) => commit(p => ({ ...p, lines: p.lines.map(l => l.id === id ? { ...l, ...patch, words: [], precision: patch.text !== undefined ? l.precision : 'manual' } : l) }));
+  const update = (id: string, patch: Partial<LyricLine>) => commit(p => ({ ...p, lines: p.lines.map(l => l.id === id ? { ...l, ...patch, words: [], wordSegments: patch.text !== undefined ? undefined : l.wordSegments, precision: patch.text !== undefined ? l.precision : 'manual' } : l) }));
   const selectedLine = project.lines.find(l => l.id === selected);
   const split = () => {
     if (!selectedLine || Array.from(selectedLine.text).length < 2) return;
     const chars = Array.from(selectedLine.text), half = Math.ceil(chars.length / 2), middle = selectedLine.start !== null && selectedLine.end !== null ? (selectedLine.start + selectedLine.end) / 2 : null;
-    const second = { ...selectedLine, id: crypto.randomUUID(), text: chars.slice(half).join(''), start: middle, words: [] };
-    commit(p => ({ ...p, lines: p.lines.flatMap(l => l.id === selected ? [{ ...l, text: chars.slice(0, half).join(''), end: middle, words: [] }, second] : [l]) }));
+    const second = { ...selectedLine, id: crypto.randomUUID(), text: chars.slice(half).join(''), start: middle, words: [], wordSegments: undefined };
+    commit(p => ({ ...p, lines: p.lines.flatMap(l => l.id === selected ? [{ ...l, text: chars.slice(0, half).join(''), end: middle, words: [], wordSegments: undefined }, second] : [l]) }));
   };
   const merge = () => { const index = project.lines.findIndex(l => l.id === selected); if (index < 0 || index === project.lines.length - 1) return;
-    commit(p => ({ ...p, lines: p.lines.flatMap((l, i) => i === index ? [{ ...l, text: `${l.text} ${p.lines[i + 1].text}`, end: p.lines[i + 1].end, words: [] }] : i === index + 1 ? [] : [l]) })); };
+    commit(p => ({ ...p, lines: p.lines.flatMap((l, i) => i === index ? [{ ...l, text: `${l.text} ${p.lines[i + 1].text}`, end: p.lines[i + 1].end, words: [], wordSegments: undefined }] : i === index + 1 ? [] : [l]) })); };
   return <div className="lyrics-panel"><div className="panel-title"><h2>歌词</h2><span>{project.lines.length} 行</span></div><div className="import-actions"><button onClick={paste}><Clipboard size={14}/>粘贴歌词</button><button onClick={importFile}><FileUp size={14}/>导入 LRC</button></div>
     <div className="lyrics-meta"><span>{!project.lines.length ? '尚未添加歌词' : project.lines.some(l => l.start === null) ? '有未校时歌词' : project.lines.some(l => l.precision === 'estimated') ? '估算时间轴' : '已加载时间轴'}</span><button title="从原始内容恢复歌词" aria-label="恢复原始歌词" onClick={() => commit(p => ({ ...p, lines: parseLyrics(p.source, p.duration).lines }))}><RotateCcw size={13}/></button></div>
     {project.lines.some(l => l.start === null) && <button className="estimate-button" onClick={() => { commit(p => ({ ...p, lines: estimateTiming(p.lines, p.duration) })); notify('已生成均分草稿时间，请按实际演唱校时。'); }}>生成估算时间</button>}

@@ -1,55 +1,155 @@
 {
   "upstream": "https://github.com/chthollyphile/folia-major",
-  "head": "e28f61c737ed750edd83ecb5810f881507a42792",
-  "source": "local working tree, 2026-09-06",
+  "head": "e7de95defa4e7667968e2f61e0fc8bd9b4da3850",
+  "source": "local folia-major working tree, 2026-09-07",
   "files": [
     {
-      "path": "components/visualizer/FluidBackground.tsx",
-      "sha256": "66e11d0dfb8954789bd93d57537770d2ce1f64554f458b6c95a08f0036ea1d66"
+      "path": "components/floating-player/PlayerBottomBarLayoutContext.ts",
+      "sha256": "78cf01bb28ab3832cd8bd14d33a6dc523a381b1da339f6a62c5f4a5293d1a2bc"
+    },
+    {
+      "path": "components/shared/QuickControlChip.tsx",
+      "sha256": "7f26c23b3c13774eb564aded2e8901fb1f1e8149257515e60b0dc71553622383"
     },
     {
       "path": "components/visualizer/FumeBackground.ts",
       "sha256": "427b7b30bf751c592a54776193620fce40d9b99d50b26c44b16ec9a3596953c3"
     },
     {
-      "path": "components/visualizer/GeometricBackground.tsx",
-      "sha256": "12c2907140078750d4e35d0ad7b45ecc901b89d58b4426e129b25ec4e6da151b"
-    },
-    {
-      "path": "components/visualizer/SoraBackground.tsx",
-      "sha256": "7b7f73e764a0ae1d606e16cd223eb518360bdab6273ea16cc8946296dbddb046"
-    },
-    {
       "path": "components/visualizer/VisualizerShell.tsx",
-      "sha256": "230285d8c61ff351008455d185a563b06efb65924ba2b6876df7eca17113eeee"
+      "sha256": "8bafc72e33b3142db11a9f2a642ce83f92edf8f2143651f20b0040afbaf4cbf3"
     },
     {
       "path": "components/visualizer/VisualizerSubtitleOverlay.tsx",
-      "sha256": "75d856b8e9919d943221ba1e781c1e3bd836709333d4a022540b2a71e71f6b94"
+      "sha256": "bf63b84527d3a70c795b638d5dd2e102b76cf2e529f7105e64272f6f20cc79ae"
     },
     {
-      "path": "components/visualizer/aurora/AuroraCanvas.tsx",
-      "sha256": "9ec18e2c264cb418fbc9e5f14dc6f88bb7ec35b564f59bf268bb1bb4a636867b"
+      "path": "components/visualizer/backgrounds/BackgroundToggleRow.tsx",
+      "sha256": "0a7a5308748d3c9476f3bde1dd68e5763005ea1eac9bf65b83861d31eec1730c"
     },
     {
-      "path": "components/visualizer/aurora/VisualizerAurora.tsx",
-      "sha256": "8228da2ec5df2e8ec568e62b1e6cc701224b4be6cdbc94ccc93f0c4bf24ce385"
+      "path": "components/visualizer/backgrounds/VisualizerBackgroundRenderer.tsx",
+      "sha256": "d87a85eafa496b202aac332741a46da51e39e12b596c3bb472e1c56641a7f1ad"
     },
     {
-      "path": "components/visualizer/aurora/tuning.ts",
-      "sha256": "652c2501c6abe7e9690eca764726a7a672c4507c5b58f5a5544737d0d2c15da9"
+      "path": "components/visualizer/backgrounds/common/CommonBackgroundSettingsCard.tsx",
+      "sha256": "fbf18b936fc003a5ed0a1d81a206122fdf51f3e30606f235683fcba295a4563e"
     },
     {
-      "path": "components/visualizer/backgrounds/MonetBackgroundLayer.tsx",
-      "sha256": "e5b3ab94cb767b696af5e0c5d4eb8517c867fa02e79a91f6cf02a8ceb3727fa6"
+      "path": "components/visualizer/backgrounds/common/FluidBackground.tsx",
+      "sha256": "62baf5d5ee3817987947bbe341376a46bfecc875b65b92ce402f8d9412be5a88"
     },
     {
-      "path": "components/visualizer/backgrounds/UrlBackgroundLayer.tsx",
-      "sha256": "eaa230735f30668b7915ec83e485b67ba31f72466218357ec476a851f25169e0"
+      "path": "components/visualizer/backgrounds/common/GeometricBackground.tsx",
+      "sha256": "3620010cd2283142e7904add1336d2d7cf40d9f0da8224c676d55f18f042c86d"
+    },
+    {
+      "path": "components/visualizer/backgrounds/common/entry.tsx",
+      "sha256": "20249a70af3810835d34ca604f5f2e0d0a2257aad26033c3fcf7323ee4e5b63d"
+    },
+    {
+      "path": "components/visualizer/backgrounds/definition.ts",
+      "sha256": "c7969d9b50a0e216fa52c3e36a70ba04ffdf96579f7d62cbd00cbdbaf8c7ecb3"
+    },
+    {
+      "path": "components/visualizer/backgrounds/latent/LatentBackground.tsx",
+      "sha256": "58b0793b397b6f17b15d62427cd3bcea7408256e7eb57ee5cd22a9d0b44713a0"
+    },
+    {
+      "path": "components/visualizer/backgrounds/latent/LatentBackgroundSettingsCard.tsx",
+      "sha256": "7caf57d0269970b6e93348722505b783fe7135308c3533fea4c2f807ea0ed435"
+    },
+    {
+      "path": "components/visualizer/backgrounds/latent/entry.tsx",
+      "sha256": "a1cd0d938765dd416bb1aeaaa183cd9547b3f07ee94705479d2c937bf591fba7"
+    },
+    {
+      "path": "components/visualizer/backgrounds/monet/MonetBackgroundLayer.tsx",
+      "sha256": "e794ed3c68a2a701b0948704da3423ce2ebb7595316e08f2296df6717d367310"
+    },
+    {
+      "path": "components/visualizer/backgrounds/monet/MonetBackgroundSettingsCard.tsx",
+      "sha256": "1b05b0a332c1c5e0465148e293cd5d1f1fdbaa065ee012a12ee1bbf3b11ded73"
+    },
+    {
+      "path": "components/visualizer/backgrounds/monet/entry.tsx",
+      "sha256": "c98a2e49d42e4169b5ce3c347bd22862cf9b6c5a2b3e1ca4157f1d66c479d656"
+    },
+    {
+      "path": "components/visualizer/backgrounds/monet/monetBackgroundDrift.ts",
+      "sha256": "b3f7e7b8940fbccd86d8fe8976e158b1ae02ef6b7add26e42875014127dfaf29"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandBackgroundEffectPanel.tsx",
+      "sha256": "697dc583a48c8d1242e39910ab1afea45a43a738412ee2a3f9422fbef7f71da6"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandBackgroundEffectSettings.tsx",
+      "sha256": "e188ad3658f5776b4c9fb45e19b46bd91c43a4e7648ffe53f0f03205e6ce16ce"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandBackgroundLayer.tsx",
+      "sha256": "48c90d4adfd63cb9135d5b4862f5ae4bc4679fe671a44234ff7fa35643bd877e"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandBackgroundSettingsCard.tsx",
+      "sha256": "4b15e0cc45c581c5a057ea99df1af6700e9605972d4ccee79d41e11182dcddcf"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandDitheringSettings.tsx",
+      "sha256": "b1b586d7d36b2a64f0855b43f1186188b4ba5458f7091950020202d8f55cf861"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandFlutedGlassSettings.tsx",
+      "sha256": "39b24e27e90b5148487f9074613bd16fea90f9cec54d6c8650834e488f3dc1c4"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandHalftoneDotsSettings.tsx",
+      "sha256": "66c2a621c431dff5360ca173862a1fd42829f8be3498c3c20f785e4b2e47b535"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandLensDistortionSettings.tsx",
+      "sha256": "54166ae745e5992d6f7aaf4d20cfb8c7ad049ff265a0707e68a4bf978c59b8d8"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/NomandPaperTextureSettings.tsx",
+      "sha256": "29e541050c79fece7d751a3969a22258ee22a9591a5536133d994b5672a25e2f"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/entry.tsx",
+      "sha256": "37d7504268105c217ca084ffd5dd89db37b8e13e0df5f2deb16f77cb07af6485"
+    },
+    {
+      "path": "components/visualizer/backgrounds/nomand/nomandShaderAdjustments.ts",
+      "sha256": "3a1371924804a024f9085ffbe2ddfcf0f8946c0536ede9a88db674f47cbd7217"
+    },
+    {
+      "path": "components/visualizer/backgrounds/registry.tsx",
+      "sha256": "b56ae9a4b2027611d015568dcf28a9e48fea458821c025011c1ef18e0e769fae"
+    },
+    {
+      "path": "components/visualizer/backgrounds/sora/SoraBackground.tsx",
+      "sha256": "145a4f57fe96bea5b7bd12ff4461491713f5b1a524d28ac87897ad7324cb1150"
+    },
+    {
+      "path": "components/visualizer/backgrounds/sora/entry.tsx",
+      "sha256": "1b3b1fbb0676724e7157b32570049d2875f4aa812feddd857a2f6af5746a8954"
+    },
+    {
+      "path": "components/visualizer/backgrounds/url/UrlBackgroundLayer.tsx",
+      "sha256": "29e8ba6e3dcfffba85da5d6fee34f3fd8589488ac551cdf34958c0e7f3c93d37"
+    },
+    {
+      "path": "components/visualizer/backgrounds/url/UrlBackgroundSettingsCard.tsx",
+      "sha256": "79ef880a64918712b1c9c182a6fa08ad6f58582b035195478750bb150bc1fc82"
+    },
+    {
+      "path": "components/visualizer/backgrounds/url/entry.tsx",
+      "sha256": "860b6913558a38aaffff649c94289232ce548d1d2d0e988075a61a409c9409a5"
     },
     {
       "path": "components/visualizer/cadenza/VisualizerCadenza.tsx",
-      "sha256": "b7d30dc32c4cd5424179abf8d0a729bf233e93988274a80ba9ce8095a1cc8ee8"
+      "sha256": "30ecebe5e39bea29e60f23f1eda415e93dd808ad36c4a16d4840731cca171ac3"
     },
     {
       "path": "components/visualizer/cadenza/tuning.ts",
@@ -57,11 +157,11 @@
     },
     {
       "path": "components/visualizer/cappella/VisualizerCappella.tsx",
-      "sha256": "b6d78a0b41d8b5135c4b1da3b5d86092a1277380fbfc704a98f6056487faace2"
+      "sha256": "3cc7d76445a2fddd4425e39360e21277874f7a97932a2156a1fe5d0628c89f71"
     },
     {
       "path": "components/visualizer/cappella/avatar/README.md",
-      "sha256": "9e2841959a661be948e299380cac45e201463893b0c31784ab7aadbb644fc64d"
+      "sha256": "42d141498f85c2ad437a0dc7bd72254de4f6a935415129e2db71a9b9327f48a6"
     },
     {
       "path": "components/visualizer/cappella/avatar/avatar10.png",
@@ -133,7 +233,7 @@
     },
     {
       "path": "components/visualizer/cappella/emo/README.md",
-      "sha256": "355ceb14e5b954d655f421cca02e5ce46d5d4757175ba8c60e16959359ef6817"
+      "sha256": "64b47c6b4dcd0e6484aa42ede09ffecbdc6d7b11f3d10211f1bf3b47e858f24e"
     },
     {
       "path": "components/visualizer/cappella/emo/happy1.png",
@@ -181,7 +281,7 @@
     },
     {
       "path": "components/visualizer/claddagh/VisualizerCladdagh.tsx",
-      "sha256": "4855a20ba16aa520dae1c4f94fbf2d307517d323876fa0c69619382ff8c26200"
+      "sha256": "b3a3991b2e0a473da31fb471307ad037b97d7f457c9ea2e68d5c5e49ae3c1d67"
     },
     {
       "path": "components/visualizer/claddagh/tuning.ts",
@@ -189,7 +289,7 @@
     },
     {
       "path": "components/visualizer/classic/Visualizer.tsx",
-      "sha256": "2863a5a4a7cb79d8b78e23dc35e13bbfc5c5672bf0f2cf7054266bf4d7becdd7"
+      "sha256": "88b8cbeca64251480b36eab959608258123c31668b49618679f799e002cb1629"
     },
     {
       "path": "components/visualizer/classic/tuning.ts",
@@ -201,31 +301,67 @@
     },
     {
       "path": "components/visualizer/definition.ts",
-      "sha256": "5cf132a34cf8cbf6828b8f6abaed64685adf9ad5451b99c4796eb0ea5a69d50d"
+      "sha256": "87337b2c18a90930e995081712b60ebc9986f222eb0c3fe62537998165fac84a"
     },
     {
       "path": "components/visualizer/diorama/CameraRig.tsx",
-      "sha256": "0e097af19ea1f17eabc8482f2eae17895470e7c4973691df28c9a2f70b86c1b8"
+      "sha256": "86d9fd1e5ef829b62650cec6c5fb7eb5a9db8154b75d9fcab6caea515fc448f4"
+    },
+    {
+      "path": "components/visualizer/diorama/DioramaParticleField.tsx",
+      "sha256": "6b23bd8046b89cdfa109b7f8c13f318117f9e22a7c9772a64c8f32011c3add67"
     },
     {
       "path": "components/visualizer/diorama/DioramaScene.tsx",
-      "sha256": "c80ef47beb30042290588d698f465ddf0e4e86c3f1af2085301a85b4a9e32769"
+      "sha256": "21c4730d27cd99267e7f5e3bfc2aa8591e742983c6f1164fee74c746c3dc4a16"
     },
     {
       "path": "components/visualizer/diorama/VisualizerDiorama.tsx",
-      "sha256": "119fca47b9afc8d3b2f7d5ebfc77334de502003d01bae980e3697066995b97d7"
+      "sha256": "099033c512dcf38a205817397c3952db7a8664734c6b38558781dce3d75a6c9c"
     },
     {
       "path": "components/visualizer/diorama/cameraPath.ts",
-      "sha256": "ec76076dfd43263fd5a175afa6b7478445f43d451228963faf8d3f26eaf2ce8e"
+      "sha256": "71adb1bcb6b7c099a147848065004d48de1d3fa2f45122681cd2fb50d0ce3e76"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaGeometry.ts",
+      "sha256": "76357aef11c05502c031a32c7be64aa5141cfb999c40144b5c737850056b537c"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaKeywordColor.ts",
+      "sha256": "10a6d0c629690723eccd8c43fc4daa5e00bb2e2902455bedc38b018f7f0caf3e"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaMoteField.ts",
+      "sha256": "0babd748a65c04586cadca8c5f8494d7e350d6e59327f14923b9e49c968445a5"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaParticleCorridor.ts",
+      "sha256": "385d1256a50c07f83082a69953c939a17de5f4d96adbce239b5b48118917bbf4"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaParticleMaterials.ts",
+      "sha256": "8dd90ee9568d56936e8f92bf254f46289b6c4e3e50112796f693777139dff08f"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaParticleModel.ts",
+      "sha256": "3d6a3637c106c6ececfcda7748b253bac64d308b8b06e5e9572166488d41934d"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaParticleShaders.ts",
+      "sha256": "9e6bcc8287a6e3de4aed34def937fe87c4400aded887d58485c60e30a1e079f2"
+    },
+    {
+      "path": "components/visualizer/diorama/dioramaParticleSurfaces.ts",
+      "sha256": "d4f77613c4a321c1957c4d92fa889269aa7a66e1103eccf1f2138d223d434e17"
     },
     {
       "path": "components/visualizer/diorama/dioramaSequencer.ts",
-      "sha256": "15d74a0792f74739593c7a992e53e4792e8683d9f27a01379e3dc8b3662a4225"
+      "sha256": "840b37e72c0947daa238a91e15efee1436cb66aef1da6655dd9db809a19b0efa"
     },
     {
       "path": "components/visualizer/diorama/dioramaTextRaster.ts",
-      "sha256": "8a92ccd023c82311db5228897be735982b142caf249b8d11036c6c060327d24c"
+      "sha256": "085bc682dbe3e15ba08cede13108063b4ff1cf0a4a79b35be35be56722a41d28"
     },
     {
       "path": "components/visualizer/diorama/dioramaTransition.ts",
@@ -237,11 +373,15 @@
     },
     {
       "path": "components/visualizer/fume/VisualizerFume.tsx",
-      "sha256": "51f3e36eb079dfc42f659c3f25470e6290465f803258b58f5c763a6e397c1070"
+      "sha256": "9bd55fc1e1a045b22beb64749491e58723cbbd54567e6fb7b31b2155682e3f16"
     },
     {
       "path": "components/visualizer/fume/tuning.ts",
       "sha256": "97849748cc7e5b1f78a360bda622de520294c5392df5ec967edcd059099e6533"
+    },
+    {
+      "path": "components/visualizer/loadPixi.ts",
+      "sha256": "904465fff97dda3c39aa9891fdb39d52bb832cd2fa6f06049baf98b74c2fc203"
     },
     {
       "path": "components/visualizer/monet/AudioOverlay.tsx",
@@ -249,23 +389,35 @@
     },
     {
       "path": "components/visualizer/monet/MonetFloatingDecor.tsx",
-      "sha256": "8d72866943d0052ffd481cd064533d5ebac8f23e604368f170723f7a788a2901"
+      "sha256": "ad829ae68c8b1702444a1728d53b7d721d508da2bba75b4b80dbcb9417d0dcdb"
     },
     {
       "path": "components/visualizer/monet/MonetLyricsRail.tsx",
-      "sha256": "b7db0aa59bd8e4baead4e3bc2033360b7dae0e5d715b2b5e1c41a408abe1a98f"
+      "sha256": "4fc40688e2f28079a4a3b2c82ef2e90256e1efc00eb0ec94237a3d871b0ff5f6"
+    },
+    {
+      "path": "components/visualizer/monet/MonetPortraitImage.tsx",
+      "sha256": "3857dbca7d4a1f6b84f9f498dc9a94a5495b10a0b52eb6330e0163cd192efc74"
     },
     {
       "path": "components/visualizer/monet/VisualizerMonet.tsx",
-      "sha256": "65afa0a784d7665183e1ece6e730d3e4d202c65b6fe2fff07e3d6e1449c74aa6"
+      "sha256": "5c7a38bbc80531fb2799a2317595a97e01e3d820fb96ee615452ebd1f87cc254"
     },
     {
       "path": "components/visualizer/monet/monetBackgroundPipeline.ts",
-      "sha256": "0a431792e8b1c9ff3f35182bbfb3fc18c83c796530c2da7f71aebc735ec2922f"
+      "sha256": "101b8d9fecc668b62e5b754a861951140dbf92df4c98e50162332ef1050aebb1"
+    },
+    {
+      "path": "components/visualizer/monet/monetLyricMotion.ts",
+      "sha256": "660203bcd3d743976959c72bdf705790efac4d0de22bd5351e42bda41cb9c657"
     },
     {
       "path": "components/visualizer/monet/monetLyricsModel.ts",
-      "sha256": "ad96d5bd4c9a1cb2df643cd620bbe2cfeebc768bec525c5777ed0cfa61963687"
+      "sha256": "60fdb1296fbb260643a3dbe28ecbcc297312a24bb1a5a26506fc07aee8c5513e"
+    },
+    {
+      "path": "components/visualizer/monet/monetPortraitCrossfade.ts",
+      "sha256": "f7c6a9c63dc97853a85bf1d7dbe2a846e19bb1bd65254c7ff2a85a5635a7ae76"
     },
     {
       "path": "components/visualizer/monet/tuning.ts",
@@ -273,19 +425,447 @@
     },
     {
       "path": "components/visualizer/partita/VisualizerPartita.tsx",
-      "sha256": "a31eb99162aacbe97dfb6f811a28459c5272dbaa4e719809db5d291dccbeed97"
+      "sha256": "7f2364171c3b56a152202bf386e70316ec85847195983b744a25ee5ed652586c"
     },
     {
       "path": "components/visualizer/partita/tuning.ts",
       "sha256": "0a8d024f6155bb00f20280e18d7aa52582c7f88635b90524850c2f59a247922d"
     },
     {
+      "path": "components/visualizer/pendolo/PendoloActiveLyricSweep.tsx",
+      "sha256": "c54a40d6ce52146c1c31f94bb1ca8934dea519e317bd0ee9c01409daa1ff85f3"
+    },
+    {
+      "path": "components/visualizer/pendolo/PendoloClockworkCanvas.tsx",
+      "sha256": "f753c4b61539d2dc7220d0dd1a29a46e44be0e4093f1d3cebb281b6460f48835"
+    },
+    {
+      "path": "components/visualizer/pendolo/PendoloRotatingLine.tsx",
+      "sha256": "4e5d952088c103b5d7f968813b5cf47a841889db311eed31e59fce551a9af531"
+    },
+    {
+      "path": "components/visualizer/pendolo/VisualizerPendolo.tsx",
+      "sha256": "70cad246f46ad5ec0495814f74626092424830e2a672b3e407882c8ab63bb23d"
+    },
+    {
+      "path": "components/visualizer/pendolo/pendoloColorRuns.ts",
+      "sha256": "1c5b5b3607e0702470a14d52be98990bc8ce47a15de9caaf06e5391e62b7ef5f"
+    },
+    {
+      "path": "components/visualizer/pendolo/pendoloGeometry.ts",
+      "sha256": "896e277de978909cb46f9c1b53e91c6fff3158fbd6b599feeb54fc36c587d14d"
+    },
+    {
+      "path": "components/visualizer/pendolo/pendoloMotionProfile.ts",
+      "sha256": "cf8cd1afcb0e9c22e8229fb405b8eccdf2da6042962943c2bc9f6bf01e9f1200"
+    },
+    {
+      "path": "components/visualizer/pendolo/pendoloTextLayout.ts",
+      "sha256": "f4aab6b5f8edc823cffba77cd756eabaa41e8975c5cb4379d55347ad37772e8c"
+    },
+    {
+      "path": "components/visualizer/pendolo/pendoloTimeline.ts",
+      "sha256": "1eee502dd0a2f42da279195b3e4ba7e57b67448eedc2f1635117ec005f4240f6"
+    },
+    {
+      "path": "components/visualizer/pendolo/tuning.ts",
+      "sha256": "45111f1d6211fc81b501d64a708623f5de8196bb2dd28d0009ae3c6ca6f48dd3"
+    },
+    {
+      "path": "components/visualizer/pixiDisplayResources.ts",
+      "sha256": "9a537907aeba020b7ac7a226d024cd16a703dea4b1499f71227e124a5c604edd"
+    },
+    {
+      "path": "components/visualizer/pixiRuntimeHost.ts",
+      "sha256": "1a8cfb4ae55a2a3c30c4d8015a593e8968049e32872ea036d41f025989372eb1"
+    },
+    {
       "path": "components/visualizer/runtime.ts",
       "sha256": "4055fca28b1bddc4522318ce53c2239c7e681e0d8b0b711b22b19cb7556c3d47"
     },
     {
+      "path": "components/visualizer/songHandover.ts",
+      "sha256": "64a41436d37e804d53301d1ebdac60e348ebee5fbdcbd7a7875d783ac198f729"
+    },
+    {
+      "path": "components/visualizer/sonnet/VisualizerSonnet.tsx",
+      "sha256": "1ce40758f7317a5e330b6176e6fc3665fdc9be5ae38a9959eabfd884665081a4"
+    },
+    {
+      "path": "components/visualizer/sonnet/createSonnetPixiRuntime.ts",
+      "sha256": "17664fbc4056279fba49f90de22c1a642990636c2a1139d2eaee1ad69bb04d7a"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetAdditionalShotMg.ts",
+      "sha256": "950518fa877b0546c6d8b0e5f3e3683e1bc8d39e9da1e1c09cc233e52af018e0"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetAnimatedGraphics.ts",
+      "sha256": "4738e94810901d2212a008f5b69fff493818989f2e7dbafd56334a6a8ac3c794"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetBackgroundDecor.ts",
+      "sha256": "20fb6fc7df5cd4174df37aae57bb14724b1b939d9a2c46e82de245c9fb11a6f5"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetBackgroundMgVariants.ts",
+      "sha256": "b674affbf49bf62b36fffb408e03b89a61d192c5dbcec67b69d49185be560856"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetCameraTracking.ts",
+      "sha256": "a461a102987fde096e3fa9fcf0cab8900f411f46a4624c0555650403ddb3e90e"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetCredits.ts",
+      "sha256": "786f25359426db09f18aea1fbcae9bb9465d0c65b5722e2db747083d0eca84c3"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetDebug.ts",
+      "sha256": "f81c253c779bd5f7e7d1833281ee559711b6aa6f6ee985318c75679726367f57"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetExtendedShotMg.ts",
+      "sha256": "1568cf8accb66f51b09d631b88083f34779e410c8d90b3564443315d3f758045"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetFixedGeoVariants.ts",
+      "sha256": "b1502252de38d537867e0cde74c96a7917a9c710f0aab2d608c85fae423a64d0"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetFrameDecor.ts",
+      "sha256": "1431a85fd45f77403805c9436adfc6f7c706ffa95b9e5adb0b39d1fce8961b45"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetGlitchFilter.ts",
+      "sha256": "f379bd32c0a184a509e963333c5e1ca191d367b56d03d15a832cdbb660d9a679"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetGlyphLayout.ts",
+      "sha256": "c6737255202dbd2d51537e7b930b9f57fa706d6279357ebdb03a2be20f1a12e8"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetGuides.ts",
+      "sha256": "bbc9affe9e765cbee817b9b08f0e7b2a58dc63d8aa47638b4f285e77320f3d32"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetIcons.ts",
+      "sha256": "e1353efc879fb97ca0cf2544f1cb8c3d0320097fbecd3b41835653826a774e7f"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetLensFilter.ts",
+      "sha256": "f7aaf58a694971198d18bfebd0f60d20ab7d30fddb53057e01c2e090f9304439"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetMotion.ts",
+      "sha256": "45a699c600d9a38e0327179cd00eda1190409be0b699dcc04dc3eb191f630f41"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetOpenFrameShotMg.ts",
+      "sha256": "38f49032648f3218ff7f11e04646c50611caaae16a0d0a3000613e53220798ca"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetPixiResources.ts",
+      "sha256": "9fa0494fdf5cbcf817f813b56c7c58e86b00d756d3c17024df2435d8f6a140a9"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetPostProcess.ts",
+      "sha256": "2c5862c8e3901b806a5bb38075da307b0daea3331543b6aee58a4c73f02bda29"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetPosterBlocksLayout.ts",
+      "sha256": "9e58443110c9f126d32c1e88d2adbcb3abd74f2640e3d702f99224618b54ae89"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetPrintFilters.ts",
+      "sha256": "3140998d91176c924b33ccea4934510fe7087c52ef81389988ef149d8934ca55"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetProgram.ts",
+      "sha256": "49871d8029679ee4930cd51b425271c7c2b46c06e7dfd4979fd1914930e75004"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetRandom.ts",
+      "sha256": "5fc8d99376f0f8f5380b9454446d2160321f42d69d47aca442c57beea6ce7d81"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetSceneBuilder.ts",
+      "sha256": "8388b51f3ec65c419ce694ff8e30a5bf4b9ae0d68a79172d74409d82409104f3"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetSemantic.ts",
+      "sha256": "6bec2e32026c031e91a9fea818ad0350d08efd01c0a78d5bb141d3a9cd95baed"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotFlowLayouts.ts",
+      "sha256": "923678bbb88172ff13caddcc7ef5162c28d09535e346a4829890c54aa7e20637"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMg.ts",
+      "sha256": "02464c59101eab0d515e247b63369f5b16d6909afdf15266ff9cbf20e456794d"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgArchitecture.ts",
+      "sha256": "06432ed9084f9a6eba15e5dfeb82a96af3145552e070acfd192a7f941faf9ee6"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgBotanical.ts",
+      "sha256": "f8e4d1e90465283551312a1a71a73829deff6112cd759272ddb8e60fb5b28cae"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgCelestial.ts",
+      "sha256": "51ec1ace0e751aba23445cb44d20515036f34c1bbc6440a8df2db1b8d95e66ee"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgCraft.ts",
+      "sha256": "7f3825f5e84921b97a59c2ab2a01b0690c7b87cc80efab0d88a4a51816c635ba"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgFlora.ts",
+      "sha256": "29059a4ec1204b498384ad56f30de60bc011f2efc81cb81bb5302458a1e41fdb"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgKinetic.ts",
+      "sha256": "61feea33ca6014556a8221aba8337afcaf22e9217c258daedcebcd7da83ddb2c"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgLandscape.ts",
+      "sha256": "3208e2ec88f8548af05f109928187204686e93fe1c04cabe5a8e7e9d0e6b6794"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgMarine.ts",
+      "sha256": "c85c7224b93d47dbfffed1b8a28cb4fb8f61ba1a6dd7ee5af4ead685f2f3e350"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgMusic.ts",
+      "sha256": "0c0d7c85a3a0ce0cb2ba59810b7b8817bfad2244644c69f24431b08acf50d441"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetShotMgViewport.ts",
+      "sha256": "ca38d5ce183a138cdccb3f783649d2f52a26b20697887be452a851513a51cf96"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetSpatialMgGeometry.ts",
+      "sha256": "c3a22d9bb2c56fafb657f2757fa07dbaf7989609d105825b4bbdec6a346b4efe"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetStaffNotation.ts",
+      "sha256": "a325fedf35f9799c47f2d6f6ff51333781745c0eee465a974ec591e76220ecee"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetStaffView.ts",
+      "sha256": "1e04c2ed033586ecd021fde6a4d659266e3d46d401b4dd53404dbf15fc90aa06"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetTextFixedGeo.ts",
+      "sha256": "710c6276bdd35ff0772481ed772809f754229c5a3485957a0e8463550620ef50"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetTextViewBuilder.ts",
+      "sha256": "58b487c851c36fa253c2d93be214201ded6394c08d5411c7a78948bd04a052fa"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetTexturePool.ts",
+      "sha256": "560a56509118ef9d044531b172b9c1d5174e083f3231d36b40c91015523e3d43"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetThemedShotMg.ts",
+      "sha256": "caf666b7944e4435f68758c51df47b8b0889f09c7da968370e7c2dedffc93c9a"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetThemedShotMgPrimitives.ts",
+      "sha256": "f6f77e4e58b41ef44954ac9643d39df0ceccc31562094f6b8bda481294091ec0"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetTransitions.ts",
+      "sha256": "50a7e306a6163942371bd36007847ebbd353d4437b47ef90e4a3126f0e193463"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetTypographyLayout.ts",
+      "sha256": "19b0fc30e9964e46965a4ee470232f8fc6d00ffb246d09981caaad147d95c69b"
+    },
+    {
+      "path": "components/visualizer/sonnet/sonnetTypographyRoles.ts",
+      "sha256": "5438eb25f23c29b8acfbce4c149dc7a24df97de08f59da31d93e6b942142340b"
+    },
+    {
+      "path": "components/visualizer/sonnet/tuning.ts",
+      "sha256": "5409aa7b365859dccb0298393d3f1359fa9892348f6eb7ea7d467e18803cab0b"
+    },
+    {
+      "path": "components/visualizer/sonnet/types.ts",
+      "sha256": "21643a8b47c747eb125a7785519e03b48b624f0190af349309fe32fd1f45006c"
+    },
+    {
+      "path": "components/visualizer/still/VisualizerStill.tsx",
+      "sha256": "4dcfac20443d202cb0d703c80b90f424c72420fc33584000720d31413a115307"
+    },
+    {
+      "path": "components/visualizer/tempera/VisualizerTempera.tsx",
+      "sha256": "79d43121a6f89f985c30875deb4f111350ec415259481f28d87e686b23df6709"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaApertureCompositions.ts",
+      "sha256": "1f551915f9935acdc7f1429d021cae5d8ddcb36c988ad859bb32f9343f59febc"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaBandCompositions.ts",
+      "sha256": "ad056f2cf06f897b146910b457895532de16634342102114894f5bc9a87f1186"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaCharmCompositions.ts",
+      "sha256": "95aab5a917e7debb71d73bd00dc612172c6be63663b4a283707c5b381c7899a5"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaCinemaCompositions.ts",
+      "sha256": "cf9a42c9fba6313acb4cb00abd5c2fe5a205a767e2ccc23135acb220331647a0"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaCorridorCompositions.ts",
+      "sha256": "667d314dff8112a936e74659ba195d39a10831d8eb85f07f14fb691505629654"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaCutout.ts",
+      "sha256": "b2a13029b5042c32f4ae0ad3836bf5cb664c410c1adfe652c182169522873005"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaFrameCompositions.ts",
+      "sha256": "694583696bffb4eb7ec4b68284b92cf7d048d3dbc9f41d916bc174dec0c97c7d"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaMonogatariCompositions.ts",
+      "sha256": "9a71253fb54ff45aa9b198ac639dc6f7fe55dec47e064b55adb4497bffe955fe"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaMonolithCompositions.ts",
+      "sha256": "67322110ce4d4ad2e308e2d4043873ea3036db97166e52702668ebf7821def39"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaMonolithKit.ts",
+      "sha256": "b98fbc34039fc3d5daa6fc2122595dd39a5fe2be4fd327eeca4ca23b307bd12b"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaPosterCompositions.ts",
+      "sha256": "43d46797b9bbc2086517e5d2b03752fc3bbfcb2bd720d1e9a372396d753407fb"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaSignalCompositions.ts",
+      "sha256": "2596468993abb10af402100e246e380c9c9cdbda441db87eaeabebc691ce38cd"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaSparseCompositions.ts",
+      "sha256": "515982b85d2ec8d4e2dd0c760b898a56d7f86224d1c023fc2ff1182f1b273aa2"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaSplitCompositions.ts",
+      "sha256": "d9a5054963ee139196358276e4accc3dd8bda8b65d07a6a32cc54a663912f8c6"
+    },
+    {
+      "path": "components/visualizer/tempera/compositions/temperaTerrainCompositions.ts",
+      "sha256": "0781763f5132db265ae852168a48b91a7ae0c7882a6f502edb90830caf881c78"
+    },
+    {
+      "path": "components/visualizer/tempera/createTemperaPixiRuntime.ts",
+      "sha256": "8fff3bff3ed7ff0546f33d17ebed493f8474910a3e324f2c4de6a4847c81b911"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaBlocks.ts",
+      "sha256": "5a7ab23e0feadef326afe9c235f75d422038c5e99a7b3b14c40142f5665b9f21"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaCamera.ts",
+      "sha256": "1809de7f1c97fcadbebb70e953b7d6be5f2ba03b53998acba35b83d27e9a6cf5"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaCompositionContext.ts",
+      "sha256": "cd2f67184bfb9cf2bccd1a24ceecaa1736a3fec20e2ecc4398667a4b0f51ee5e"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaCompositions.ts",
+      "sha256": "cac0835c9db378433abd6de52f20f0161deba382b8b964ae9a7fae38199c1395"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaCurves.ts",
+      "sha256": "cd99a41af6315c26e8b5b9153f62db789f4f99dbecd787314e3b1d15ad763895"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaDifferenceFilter.ts",
+      "sha256": "4fe51be1a23817540b563bc3baa7c7d00fc06f019db3311cf15db5c8d4ed2d7f"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaEnterStyles.ts",
+      "sha256": "425d68e06795599cc5d9d6c19065d36e8832ad60fc1d7eec61be70d80c0b3f3e"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaHatch.ts",
+      "sha256": "87651a4b19550f1fb5bcf040a71c5a1d4ab8e91d44d7be8bec5b2a6bfb78e8b8"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaImageLayer.ts",
+      "sha256": "373ccae7eff99d4ca1fddc8f3a4a8633d447e7bbb84b8d881b7e0058ba621098"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaLayout.ts",
+      "sha256": "d0389819f6ee83131f564c6f8fc647f534246037a243b35c0e91edab8eef5cd4"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaMeasure.ts",
+      "sha256": "877b320415fbd74ae246dfaaaa387da687744b7b7a26128b5b250cd4c6ec9b81"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaMotion.ts",
+      "sha256": "6ec03279608a7625fb999530eab2d443992a0ae076defa666bab322833aa93fc"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaMotionEasing.ts",
+      "sha256": "5afddfe6fa1843c582d6547e2edebba74751e8f9d04e44c035af310887219e33"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaPalette.ts",
+      "sha256": "179aa111814273dd4ccff6e6911175755f44ad6c06df16f89c35fc27a6f07c24"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaProgram.ts",
+      "sha256": "3047cf6c678cc9069b4e36c5174ea2f39dcaa92a4da46f4648b6d4e10aafcd77"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaRandom.ts",
+      "sha256": "19fa70fd8bf10a1b2835a71aba1c7307958593b5917a30e6b94e3fea05730a7a"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaSceneBuilder.ts",
+      "sha256": "c5e8e302217523e9d0dbd206b58ce1e51fa096947516567a2a03930a507899f1"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaSceneFilters.ts",
+      "sha256": "32267917b081a74ac63c51fcfd8e444975fac5da314e4545df3fb73cd79db43f"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaShapes.ts",
+      "sha256": "7190c4745bd4a954a3e9f7132a1c97142fab83c8dc8a54c4f025f5c86ab5fa1a"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaShotProfiles.ts",
+      "sha256": "a1a88ee2a726ae1264574aa7df80197fb2e9db7b941391d214445acb4609fb32"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaTextView.ts",
+      "sha256": "0e2503685fe24017aca9d48fec1dd204006fb35d73d57b5d2c8e741d08e000c8"
+    },
+    {
+      "path": "components/visualizer/tempera/temperaTransitions.ts",
+      "sha256": "dfb30f550937949e4c896c9370d0a10736b6ca3b3ff200ba4670e16e5ee00a2c"
+    },
+    {
+      "path": "components/visualizer/tempera/tuning.ts",
+      "sha256": "3461e4afada58ced44b4d42f6e03adbea0d512762f0ce6c00389afabf7950638"
+    },
+    {
+      "path": "components/visualizer/tempera/types.ts",
+      "sha256": "3793646ca33b7d8434d6187ed87c43afe2ce139a9078e04551aeab7ccb876a20"
+    },
+    {
       "path": "components/visualizer/tilt/VisualizerTilt.tsx",
-      "sha256": "ae498d558693d19fbf3085bd68fed15c87362fc5ec368a5070f7f8a0fbc08aaf"
+      "sha256": "6bc19215be83804a51070aa7a7a6a5dc9a8475758db02727fb7f7027db110565"
     },
     {
       "path": "components/visualizer/tilt/tuning.ts",
@@ -293,27 +873,235 @@
     },
     {
       "path": "components/visualizer/tuningRegistry.ts",
-      "sha256": "eb89853a129f759e03bbbf5b4e867d900467d1137d9bc0ea755e6c4a7cb6af14"
+      "sha256": "22a880844601bb1c601491093d6ed4a132deb2c577cdf339e25029acc61467ec"
     },
     {
       "path": "components/visualizer/wordColoring.ts",
-      "sha256": "de9e0cc086ce54c7d35676b4537103367360c7af4379e142d9a799fc41c774e8"
+      "sha256": "8264e518c1278a63759f9ebd7a6e172da4fd908de1aaaa0510c1031cc12415e9"
+    },
+    {
+      "path": "hooks/useElementWidth.ts",
+      "sha256": "9608f898679ceeb762fed9b4e4e29c76a0b1e3ba4765e5c6c6f990172847539b"
+    },
+    {
+      "path": "hooks/useFontsEpoch.ts",
+      "sha256": "1dc992b0861d1b090e1374e17dbda96440939aa9a60e08975ea70d7596439ae7"
+    },
+    {
+      "path": "hooks/useMediaQuery.ts",
+      "sha256": "6881e23c31491dbc5881fdb798c6c625cb4999228cbb55072d5a62790c226739"
+    },
+    {
+      "path": "hooks/usePlayerBottomBarBottomPx.ts",
+      "sha256": "3a766d6244eca2609c7a43c8279a217e1a35ebe61684f90b98d2d4e6c71cd9da"
+    },
+    {
+      "path": "i18n/config.ts",
+      "sha256": "c0117a779bafc7b0abf8e62850f04e22bbd4b0c05ed0f1815e45731a0c1b9a2c"
+    },
+    {
+      "path": "i18n/locales/en.ts",
+      "sha256": "03ef6d87459d99990367457b5661c1d6f8d501372e9dd845f54e7c8e8dd61053"
+    },
+    {
+      "path": "i18n/locales/in.ts",
+      "sha256": "2672569b69faaab47ccb86b007af39f94a4009e96341353d93bb12a7e8ea3de7"
+    },
+    {
+      "path": "i18n/locales/zh-CN.ts",
+      "sha256": "75c3189e774f06fe5be52804f7f8ed95271c836670e15e8cf3aa1a7dd2148918"
+    },
+    {
+      "path": "i18n/missingTranslation.ts",
+      "sha256": "506a5f7499c7e420807ceae47eb9c12fe584c8518228838d58356cb9a5e474a0"
+    },
+    {
+      "path": "mods/visualizerModulation.ts",
+      "sha256": "4dfc05847d97c54fd043eeea4f338f648d607c5e772001fb6ef68fc1674082b7"
+    },
+    {
+      "path": "services/appDatabase.ts",
+      "sha256": "7ec0aac109111a58f8da5f4ea8b15dea0b4a61881b11f49acca7d11ab8f85ca0"
+    },
+    {
+      "path": "services/binaryAssetStore.ts",
+      "sha256": "0a4e8623ab194b52233dfd7d7c9e73a985014ad21f217270e51f8b2edb859aeb"
+    },
+    {
+      "path": "services/db.ts",
+      "sha256": "00a1fdbe8b86d2f457928cfba0cf3a5dc392b4c17a4cfdf44e1efcf56abfc2c4"
+    },
+    {
+      "path": "services/dbTypes.ts",
+      "sha256": "2431c011962d6b714a901e0f6c85cf640c5839b0440c3b9a26b064d41b0ddc32"
+    },
+    {
+      "path": "services/localCoverAssetService.ts",
+      "sha256": "071910bcbe515a820641a00a98a4aa444e6a7e5f59d2abd12bdeb1193c2d6042"
+    },
+    {
+      "path": "services/localCoverBinaryStore.ts",
+      "sha256": "3ee3f8a527d8def75b8817f6dc6c11bfa67aaa94e8d1dc20ec5f7f97db3d96d8"
+    },
+    {
+      "path": "services/localLibraryCatalogInternals.ts",
+      "sha256": "b46c13054aea8d566b10b40168a2827fa85bb688cf6b2c09e4b8c288800b648b"
+    },
+    {
+      "path": "services/localLibraryCatalogService.ts",
+      "sha256": "2d1ee889f7c6e5e7171a192948362ac3b673806c194b0038552748c6616d6521"
+    },
+    {
+      "path": "services/localLibraryEntityMutations.ts",
+      "sha256": "feb901bf5f9f25ea6421ae7705cac130943fcf67e5407ed8be02f250aa3bc089"
+    },
+    {
+      "path": "services/localLibraryImportCatalog.ts",
+      "sha256": "52fb5a420f071e49a237973f9b27963d9549665ca5f2e13972a8078eb007a190"
+    },
+    {
+      "path": "services/localLibraryV8Migration.ts",
+      "sha256": "20bff0b720409628e155731a6af2c946894e9dbb10eadfa0a538008ed2466538"
+    },
+    {
+      "path": "services/repositories/cacheRepository.ts",
+      "sha256": "cb81d368ef2eb12259820a9ae0e5c3e554ca12cb093327d9afbcaf49bb060385"
+    },
+    {
+      "path": "services/repositories/localSongRepository.ts",
+      "sha256": "02c63ca280a44c22e964a55805518042af29172547c3bdc90883fb06defafea7"
+    },
+    {
+      "path": "services/repositories/sessionRepository.ts",
+      "sha256": "691753a9d6f80f9512a0fed21a27cea65335938f10adbc44bd95058d8fbdc6f4"
+    },
+    {
+      "path": "services/repositories/themeRegistryRepository.ts",
+      "sha256": "5a2abb7cb92244319f3d2c669b2d56133a7fecaba6a29ed098506226859eb1e3"
+    },
+    {
+      "path": "services/temperaLayerImages.ts",
+      "sha256": "cf1a94d6978100adc322c6450b0115ce97a5ea78b9ee68491debc40667656ae9"
+    },
+    {
+      "path": "services/visualizerImageAsset.ts",
+      "sha256": "4f01d4eebbe4dff6a80bd6a2f85c80972bf0d3fc5695dbe4b7f1cb82efb52fc0"
+    },
+    {
+      "path": "stores/motionSignals.ts",
+      "sha256": "8aa885420d4fa36e4ad8c27bb8500026c82abedaaceea132d3ce040e224a358f"
+    },
+    {
+      "path": "stores/storagePrimitives.ts",
+      "sha256": "6318069e859bbbc6149fbdb209a6570b309058e8587af0dbd30b21803cead38d"
+    },
+    {
+      "path": "stores/usePlayerChromeSettingsStore.ts",
+      "sha256": "4bde24aeb7c5f0d912a6ba1534100a82bba63c0c30e786d42ce11ff6581f2f0d"
+    },
+    {
+      "path": "stores/useStatusMessageStore.ts",
+      "sha256": "d6b07cac5f3ae5643cb2d882bc04e0741b9ff062d31cd598fe831f8458b0dab5"
     },
     {
       "path": "types.ts",
-      "sha256": "a30096b0a51dae6c03ded2f5b39ca7f51b630eb232323a25a1cadf61c861c872"
+      "sha256": "2c4ded984807b28de4d6364eb8d736a0e21047cda6f74b5d206207df1761fa49"
+    },
+    {
+      "path": "types/localCover.ts",
+      "sha256": "ab0ef681c41212b5027e3657d01347c76304e80c760bcf734187debe0b84f751"
+    },
+    {
+      "path": "types/localLibrary.ts",
+      "sha256": "3854bd20ab81c5ad5632879b08a085da0f57cbe82615a86767f77a7c7527dddd"
+    },
+    {
+      "path": "types/lyricSegmentation.ts",
+      "sha256": "987241b0ad15a019322ff371dbd2e6bde158446ade8708355a21174cb3894a71"
+    },
+    {
+      "path": "types/navidrome.ts",
+      "sha256": "490c6760f508c548721f85a5916e1644274f2d9184615fdeae974cde9673163d"
+    },
+    {
+      "path": "types/onlineMusic.ts",
+      "sha256": "81cf2010a3d4da1a9ad63529deee58561735010772ed4d41034d2d08d0b0cf7b"
+    },
+    {
+      "path": "types/playerControlSlots.ts",
+      "sha256": "628c975b3a0a3cba528a8a0780aa282e95949935c938332dc4ecea3c21de76c1"
+    },
+    {
+      "path": "types/visualizerModes.ts",
+      "sha256": "668449d9593e479ee4d69c43b3b4ea46203a6f36560f8b860c3d4cd44f97f315"
+    },
+    {
+      "path": "utils/blobGuards.ts",
+      "sha256": "2fd9f760c737d9ed7e3c3225ab540afa508ff8e1b3ff793e4e5d941842b20102"
+    },
+    {
+      "path": "utils/colorExtractor.ts",
+      "sha256": "c5709cfe5e7733ea823fe332f94e5c2cf0c786bdc1296bdd0a9a714c23fbe920"
+    },
+    {
+      "path": "utils/colorPalette.ts",
+      "sha256": "c6b6324d1f09f007531a89513c6be7727378204a1bff6926b6c335d86cb67888"
+    },
+    {
+      "path": "utils/coverUrl.ts",
+      "sha256": "3f60ab78577aea280115056c87a624615bd2036056369f6d2dbed199c5fc91b3"
     },
     {
       "path": "utils/fontStacks.ts",
-      "sha256": "c1503966e341d0ad162a610a041365db3e2e24b9df46d6500445a17e01317ec3"
+      "sha256": "2f7e3f0a97e73fdc57e9a76a14f06a2cf94648737ae4b14670b00ff1282c702f"
+    },
+    {
+      "path": "utils/localLibraryIndex.ts",
+      "sha256": "b414b3dca0bd6ee33e4fa45b9e64f5144da39274a62595f1a092603dd74c30d0"
+    },
+    {
+      "path": "utils/localLibraryNames.ts",
+      "sha256": "8dbe21dd2fecb763e43b3f18d944f069433c251a65cb8ddd675ef38e9c812cbe"
+    },
+    {
+      "path": "utils/localLibraryResolver.ts",
+      "sha256": "e8f30bb98fa3906a0b64bbbc5f7946f1e4416435a8e4ca485c4e4614e9f147ff"
+    },
+    {
+      "path": "utils/localMetadataWorkerClient.ts",
+      "sha256": "62304c217fa06efe857436fc4934d89e18615309d1b8871c1a325c41a1d089dd"
+    },
+    {
+      "path": "utils/localSongMetadata.ts",
+      "sha256": "a93698f607a7b72ab25a2137a85b7dcd38fe4addceb57c2be1b349fb688fa3f0"
+    },
+    {
+      "path": "utils/lucideIconResolver.ts",
+      "sha256": "fd971ca95933c73401895547fd318abbe49e559f77978f4c77acf798c78de9b9"
+    },
+    {
+      "path": "utils/lyrics/alternateText.ts",
+      "sha256": "375bfe6e7fb6861c3555a3924c8d6b3a2e4ad068485829a1f6cb66779cb0cc8b"
     },
     {
       "path": "utils/lyrics/cjkSemanticLayout.ts",
-      "sha256": "a782d49ca7c83dca3238d65146539e90320a8cfe9bcf370daa4da8fd55e7ad2c"
+      "sha256": "761be96eb93ee073c71b712e8d0b467ac4b0b73179363bcafa75439a3d96bfab"
+    },
+    {
+      "path": "utils/lyrics/formatDetection.ts",
+      "sha256": "e9ce63f8934bd3771e3f78867edbd583e9faa1119d4115cddd32446a635fe6db"
     },
     {
       "path": "utils/lyrics/graphemeTiming.ts",
       "sha256": "76ca4929c7658486a793545114c249b5c7178d4ac6fa905a2d06b066576ede35"
+    },
+    {
+      "path": "utils/lyrics/lyricSegmentationRecord.ts",
+      "sha256": "7ef36a070bbbc7a212e65f244b471d3d1ae2e4747de6a9b55e16d43ea9668c5a"
+    },
+    {
+      "path": "utils/lyrics/parserCore.ts",
+      "sha256": "21b3ecf1983ec8690567c0417cdd53271fc2ccdd94450f161dbfb9aa8834ebb6"
     },
     {
       "path": "utils/lyrics/renderHints.ts",
@@ -321,11 +1109,35 @@
     },
     {
       "path": "utils/lyrics/sentenceLayout.ts",
-      "sha256": "fe181a781aba6efd34f0a7a010deeb5ea0853e8f3056572bcb8c4be6a640f113"
+      "sha256": "d2604ebe66dc6b9b1e802d7bfeaed035a252a262ffd5557e3d9ecc91949f1239"
+    },
+    {
+      "path": "utils/lyrics/storageMigration.ts",
+      "sha256": "9866d837304c2a9a9617642f12a757621b2206102eead5bf8b76efad6ea6a0a5"
+    },
+    {
+      "path": "utils/lyrics/ttmlConversion.ts",
+      "sha256": "f5f1ac562f3603aafbf9a8239d454992440886e913cc59d5c8827bedf010375a"
+    },
+    {
+      "path": "utils/lyrics/types.ts",
+      "sha256": "ec5620a94a3805dc7de562a77844b289667fd6b92b8fa1cf611e415bbf5e6fa8"
+    },
+    {
+      "path": "utils/lyrics/wordSegmentation.ts",
+      "sha256": "ed72ad798161a1c82e427349a19b8a9ee1e77cfb9c327a1fd965b321907ed715"
+    },
+    {
+      "path": "utils/playerBottomBarLayout.ts",
+      "sha256": "7bcabb33fa67297061e720ddc7f37ff3258658e457cdeefbacadfed7de99a538"
     },
     {
       "path": "utils/urlBackground.ts",
-      "sha256": "8f7d98fc15aca32b453a88199f39c98304501491e3ec695fc721adbcb4da5fce"
+      "sha256": "edb1c91366f773f805131c9389b5f48939320af19f7570e009ec59f3424006c4"
+    },
+    {
+      "path": "workers/metadataParser.worker.ts",
+      "sha256": "d09b4edfc40e773d2f4a3d9df48d1596cbf77f9ade100e349a751e530d9cb8ce"
     }
   ]
 }

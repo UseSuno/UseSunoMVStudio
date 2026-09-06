@@ -1,6 +1,7 @@
 // @ts-nocheck
 // Vendored from Folia (AGPL-3.0); see THIRD_PARTY_NOTICES.md.
 import type { LineRenderHints } from './utils/lyrics/renderHints';
+import type { MediaId, PlaybackSourceRef, ProviderCatalogRef } from './types/onlineMusic';
 
 export interface LyricRuby {
   text: string;
@@ -37,10 +38,13 @@ export interface LyricBackgroundVocal {
   startTime: number; // Seconds
   endTime: number; // Seconds
   words: Word[];
+  agentId?: string;
   translation?: string;
   romanization?: string;
   alternateTexts?: LyricAlternateText[];
 }
+
+export type SubtitleContentMode = 'translation' | 'romanization' | 'none';
 
 export interface LyricAgent {
   id: string;
@@ -61,9 +65,13 @@ export interface Line {
   romanization?: string;
   alternateTexts?: LyricAlternateText[];
   backgroundVocal?: LyricBackgroundVocal;
+  backgroundVocals?: LyricBackgroundVocal[];
   renderHints?: LineRenderHints;
   isChorus?: boolean;
   chorusEffect?: 'bars' | 'circles' | 'beams';
+  // User-saved fine word boundaries for fullText, baked in upstream by the lyric setter.
+  // join('') must equal fullText. When present it wins over Intl.Segmenter word segmentation.
+  wordSegments?: string[];
 }
 
 export interface LyricData {
@@ -86,6 +94,7 @@ export interface Theme {
   fontStyle: 'sans' | 'serif' | 'mono';
   fontFamily?: string;
   fontFamilyStack?: string[];
+  fontWeight?: number;
   animationIntensity: 'calm' | 'normal' | 'chaotic';
   wordColors?: { word: string; color: string; }[];
   lyricsIcons?: string[];
@@ -116,7 +125,7 @@ export type VisualizerFrameRate = 'off' | 120 | 90 | 60;
 export type HomeViewTab = 'playlist' | 'local' | 'albums' | 'navidrome' | 'radio';
 
 export type PlaybackContext = 'main' | 'stage';
-export type StageSource = 'stage-api' | 'now-playing';
+export type StageSource = 'stage-api' | 'now-playing' | 'playercap';
 export type StageLoopMode = 'off' | 'all' | 'one';
 export type QueueAddBehavior = 'append' | 'next';
 export type StageActiveEntryKind = 'lyrics' | 'media';
@@ -489,61 +498,329 @@ export const DEFAULT_TILT_TUNING: TiltTuning = {
   colorScheme: 'default',
 };
 
-// Aurora（极光）模式的调参：帘幕亮度、流动速度与歌词辉光强度，均为 0~2 的倍率。
-export type AuroraColorMode = 'spectrum' | 'theme';
-
-export interface AuroraTuning {
-  ribbonIntensity: number;
-  flowSpeed: number;
-  glowIntensity: number;
-  colorMode?: AuroraColorMode;
+export interface PendoloTuning {
+  arcRadius: number;
+  arcAngleDeg: number;
+  wheelCenterX: number;
+  wheelCenterY: number;
+  tickSnappiness: number;
+  activeScale: number;
+  showGearDecor: 'none' | 'subtle' | 'full';
+  showCenterGradient?: boolean;
+  showCoverOnWatchFace?: boolean;
+  enableLineGlow?: boolean;
 }
 
-export const DEFAULT_AURORA_TUNING: AuroraTuning = {
-  ribbonIntensity: 1,
-  flowSpeed: 1,
-  glowIntensity: 1,
-  colorMode: 'spectrum',
+export const DEFAULT_PENDOLO_TUNING: PendoloTuning = {
+  arcRadius: 0.42,
+  arcAngleDeg: 100,
+  wheelCenterX: 0.0,
+  wheelCenterY: 0.50,
+  tickSnappiness: 2.0,
+  activeScale: 1.25,
+  showGearDecor: 'subtle',
+  showCenterGradient: true,
+  showCoverOnWatchFace: false,
+  enableLineGlow: false,
+};
+
+export type SonnetOuterFrameMode = 'none' | 'frame' | 'full';
+
+export interface SonnetTuning {
+  cameraIntensity: number;
+  typographyMotion: number;
+  mgDensity: number;
+  showOnlyText: boolean;
+  showGuide: boolean;
+  showBackgroundMg: boolean;
+  showFixedGeo: boolean;
+  showGiantDecorativeText: boolean;
+  showBackgroundDecor: boolean;
+  enableTransitions: boolean;
+  outerFrameMode: SonnetOuterFrameMode;
+  textureResolution: number;
+  /** Master switch for the scene-wide post-process stack (grain + contrast). */
+  postProcessEnabled: boolean;
+  /** Film grain amount, 0..1. */
+  postProcessGrain: number;
+  /** Contrast boost, 0..1. */
+  postProcessContrast: number;
+  /** Fixed print-style passes riding the master switch; strength sliders, 0 disables the pass. */
+  postProcessRgbShift: number;
+  postProcessHalftone: number;
+  /** Vignette strength, 0..2 (2 = double the base darkening). */
+  postProcessVignette: number;
+  /** Radial lens curvature amount, 0..2. */
+  postProcessLensDistortion: number;
+  /** Radial chromatic dispersion amount, 0..1. */
+  postProcessLensDispersion: number;
+}
+
+export const DEFAULT_SONNET_TUNING: SonnetTuning = {
+  cameraIntensity: 1,
+  typographyMotion: 1,
+  mgDensity: 1,
+  showOnlyText: false,
+  showGuide: true,
+  showBackgroundMg: true,
+  showFixedGeo: true,
+  showGiantDecorativeText: true,
+  showBackgroundDecor: true,
+  enableTransitions: true,
+  outerFrameMode: 'full',
+  textureResolution: 1.5,
+  postProcessEnabled: false,
+  postProcessGrain: 0.2,
+  postProcessContrast: 0,
+  postProcessRgbShift: 0,
+  postProcessHalftone: 0,
+  postProcessVignette: 0.85,
+  postProcessLensDistortion: 0.3,
+  postProcessLensDispersion: 0.6,
+};
+
+/**
+ * `gradient` fills every tone shape with a four-colour ramp built from the cover art's
+ * extracted colours mixed with the theme, instead of a flat tone.
+ */
+export type TemperaColorMode = 'duo' | 'mono' | 'gradient';
+
+/** Where an image tends to sit; the exact spot is picked per shot from the seed. */
+export type TemperaLayerImageAlign = 'left' | 'center' | 'right' | 'free';
+
+/** Vertical counterpart to `TemperaLayerImageAlign`; `free` lets each shot choose a band. */
+export type TemperaLayerImageVerticalAlign = 'top' | 'center' | 'bottom' | 'free';
+
+/**
+ * One image in the user's Tempera pool - character art, a logo, a texture. Each shot picks one
+ * of them and places it itself, so an image carries a *tendency* rather than coordinates:
+ * hand-placing every picture would defeat the point of a pool. The file itself sits in
+ * IndexedDB under the same `id`, keeping the tuning small enough to sync.
+ */
+export interface TemperaLayerImage {
+  id: string;
+  name: string;
+  align: TemperaLayerImageAlign;
+  verticalAlign: TemperaLayerImageVerticalAlign;
+  /** Height as a fraction of the viewport height; width follows the source aspect. */
+  scale: number;
+  opacity: number;
+}
+
+export const TEMPERA_MAX_LAYER_IMAGES = 16;
+
+export const DEFAULT_TEMPERA_LAYER_IMAGE: Omit<TemperaLayerImage, 'id' | 'name'> = {
+  align: 'free',
+  // Preserve the original character-art composition, which placed images low in the frame.
+  verticalAlign: 'bottom',
+  scale: 0.7,
+  opacity: 1,
+};
+
+export interface TemperaTuning {
+  cameraIntensity: number;
+  /** Per-glyph entrance motion strength, 0..2. */
+  glyphMotion: number;
+  /** Keep each source lyric line in one shot instead of slicing it into half-phrases. */
+  wholeLineLyrics: boolean;
+  /**
+   * 逐字入场时序, 0..1. How much of the way to the shot's lyric end each glyph's entrance
+   * stretches, past its 0.34s floor. 0 gives every glyph the same short window - percussive,
+   * and the shot is fully at rest well before it cuts. 1 lands the whole shot exactly on its
+   * lyric end - continuous, but nothing is ever still. See temperaLayout for the measurements.
+   */
+  glyphSettleStretch: number;
+  /** duo derives blocks from theme hues; mono collapses to a grayscale ink/paper ladder. */
+  colorMode: TemperaColorMode;
+  showBlocks: boolean;
+  showDecor: boolean;
+  /**
+   * 文字动态反色: the lyric samples the artwork under it and picks whichever of ink/paper
+   * contrasts more, per pixel. This is how the mode colours type, not a post-process, so it
+   * has its own switch rather than riding `postProcessEnabled`.
+   */
+  textInversion: boolean;
+  /** Pool of user images; each shot picks one. The files themselves live in IndexedDB. */
+  layerImages: TemperaLayerImage[];
+  /** `back` lets the lyric invert against the picture; `front` puts it over the lyric. */
+  layerImageDepth: 'back' | 'front';
+  /** 0..1 chance that a given shot shows an image at all. */
+  layerImageFrequency: number;
+  enableTransitions: boolean;
+  textureResolution: number;
+  /** Master switch for the scene-wide post-process stack (grain + contrast + print passes). */
+  postProcessEnabled: boolean;
+  /**
+   * 后处理纹理压缩: renders the post-process pass at 1x and stretches it onto the canvas
+   * instead of running it at `textureResolution`. Costs sharpness on hatch, screentone and
+   * type; buys back the fill rate a full-resolution full-screen pass costs.
+   */
+  postProcessTextureCompression: boolean;
+  /** Film grain amount, 0..1. */
+  postProcessGrain: number;
+  /** Contrast boost, 0..1. */
+  postProcessContrast: number;
+  /** RGB shift pass strength, 0..1 (0 disables the pass). */
+  postProcessRgbShift: number;
+  /** Vignette strength, 0..2 (2 = double the base darkening). */
+  postProcessVignette: number;
+  /** Radial lens curvature amount, 0..2. */
+  postProcessLensDistortion: number;
+}
+
+export const DEFAULT_TEMPERA_TUNING: TemperaTuning = {
+  cameraIntensity: 1,
+  glyphMotion: 1,
+  wholeLineLyrics: false,
+  glyphSettleStretch: 0.5,
+  colorMode: 'duo',
+  showBlocks: true,
+  showDecor: true,
+  textInversion: true,
+  layerImages: [],
+  layerImageDepth: 'back',
+  layerImageFrequency: 0.6,
+  enableTransitions: true,
+  textureResolution: 1.5,
+  postProcessEnabled: true,
+  postProcessTextureCompression: false,
+  postProcessGrain: 0.2,
+  postProcessContrast: 0,
+  postProcessRgbShift: 0,
+  postProcessVignette: 0.85,
+  postProcessLensDistortion: 0.3,
 };
 
 // Diorama's camera STYLE (calm/standard/chaotic) is not part of its tuning: like every other
 // visualizer it follows theme.animationIntensity (the player-panel intensity chip / AI themes), so
 // the theme system stays the single source of truth. The tuning only carries diorama-specific knobs.
+/** The two mutually-exclusive shapes the point-cloud layer can take. */
+export type DioramaGeometryMode = 'clouds' | 'corridor';
+
+export interface DioramaGeometryVisibility {
+  /** Parent switch: hides the whole point-cloud layer without discarding child preferences. */
+  enabled: boolean;
+  /**
+   * 'clouds' = per-lyric point-cloud formations (the family switches below apply).
+   * 'corridor' = one always-on point tunnel threaded along the flight path (families ignored).
+   * The two never render together - picking one replaces the other.
+   */
+  mode: DioramaGeometryMode;
+  /** Point-cloud cubes used by architectural formations. */
+  strands: boolean;
+  /** Open cylindrical point-cloud shells. */
+  blobs: boolean;
+  /** Triangular tetrahedron point-cloud crystals. */
+  ribbons: boolean;
+  /** Circular point-cloud loops. */
+  rings: boolean;
+}
+
+export const DEFAULT_DIORAMA_GEOMETRY_VISIBILITY: DioramaGeometryVisibility = {
+  enabled: true,
+  mode: 'clouds',
+  strands: true,
+  blobs: true,
+  ribbons: true,
+  rings: true,
+};
+
+export const DIORAMA_PARTICLE_DENSITY_MIN = 96;
+export const DIORAMA_PARTICLE_DENSITY_MAX = 1536;
+export const DIORAMA_PARTICLE_DENSITY_STEP = 24;
+// Background dust motes PER LINE of the resident window (see dioramaMoteField.ts). The motes sit in a
+// shell around the flight axis, and the two axes are INDEPENDENT: 圆周 = motes around each ring, 径向 =
+// how many layers across the shell's thickness (inner→outer). Motes-per-line = 圆周 x 径向; the window
+// holds 8 lines, so MAX x MAX bounds the layer at 8*48*4 = 1536 points for low-end GPUs / OBS sources
+// however far the sliders are dragged. Default 28 x 2 = 56 matches the old single-slider default.
+export const DIORAMA_MOTE_CIRCUMFERENCE_MIN = 4;
+export const DIORAMA_MOTE_CIRCUMFERENCE_MAX = 48;
+export const DIORAMA_MOTE_CIRCUMFERENCE_STEP = 2;
+export const DIORAMA_MOTE_RADIAL_MIN = 1;
+export const DIORAMA_MOTE_RADIAL_MAX = 4;
+export const DIORAMA_MOTE_RADIAL_STEP = 1;
+export const DIORAMA_PARTICLE_SCALE_MIN = 0.65;
+export const DIORAMA_PARTICLE_SCALE_MAX = 1.6;
+export const DIORAMA_PARTICLE_SCALE_STEP = 0.05;
+// Compatibility aliases for the uncommitted tuning UI while it migrates from point size to cluster scale.
+export const DIORAMA_PARTICLE_SIZE_MIN = DIORAMA_PARTICLE_SCALE_MIN;
+export const DIORAMA_PARTICLE_SIZE_MAX = DIORAMA_PARTICLE_SCALE_MAX;
+export const DIORAMA_PARTICLE_SIZE_STEP = DIORAMA_PARTICLE_SCALE_STEP;
+export const DIORAMA_PARTICLE_GLOW_INTENSITY_MIN = 0.1;
+export const DIORAMA_PARTICLE_GLOW_INTENSITY_MAX = 1.5;
+export const DIORAMA_PARTICLE_GLOW_INTENSITY_STEP = 0.05;
+
 export interface DioramaTuning {
   cameraSpeed: number;
   motionAmount: number;
   audioReactivity: number;
+  geometryVisibility: DioramaGeometryVisibility;
+  /** Number of points requested for each formation anchor; the renderer also enforces a global cap. */
+  particleDensity: number;
+  /** Spatial scale multiplier for each complete point-cloud formation. */
+  particleScale: number;
+  /** One soft gradient aura per point-cloud cluster, separate from lyric sung-glow. */
+  particleGlowEnabled: boolean;
+  particleGlowIntensity: number;
   showParticles: boolean;
+  /** Background dust shell, two INDEPENDENT axes (motes-per-line = the product; field clamps to its cap):
+   *  背景粒子·圆周密度 = motes around each ring, 背景粒子·径向密度 = layers across the shell thickness. */
+  backgroundParticleCircumference: number;
+  backgroundParticleRadial: number;
   /** 普通辉光跟唱: soft glow on the unit being sung. Independent toggle + strength. */
   glowEnabled: boolean;
   glowIntensity: number;
   /** 灵魂出窍跟唱: a ghost copy of the sung glyph drifts out of the text. Independent toggle + strength. */
   soulEnabled: boolean;
   soulIntensity: number;
+  /** 当前字漂移: a plain ON/OFF sub-switch of 灵魂出窍. ON lets the glyph CURRENTLY being sung drift at the
+   *  same 灵魂出窍强度 as every other glyph; OFF holds it perfectly registered (no doubling / reading
+   *  obstruction) until it finishes, after which it detaches and flies like the rest. No strength of its
+   *  own - it borrows soulIntensity. Only has a visible effect when soulEnabled. */
+  soulActiveEnabled: boolean;
   /** 渐变跟唱: the line's fill progressively deepens with the sung progress. Independent toggle + strength. */
   gradientEnabled: boolean;
   gradientIntensity: number;
+  /** 关键字着色: the theme's `wordColors` keywords (written by the AI theme from the song's lyrics) become
+   *  the follow-sing TARGET colour of the units they cover - hidden until the singing reaches them, never
+   *  a resting colour. Same source and matcher as every other visualizer. */
+  keywordColoringEnabled: boolean;
 }
 
 export const DEFAULT_DIORAMA_TUNING: DioramaTuning = {
   cameraSpeed: 1,
   motionAmount: 1,
   audioReactivity: 1,
+  geometryVisibility: DEFAULT_DIORAMA_GEOMETRY_VISIBILITY,
+  particleDensity: 576,
+  particleScale: 1,
+  particleGlowEnabled: true,
+  particleGlowIntensity: 0.65,
   showParticles: true,
+  backgroundParticleCircumference: 28,
+  backgroundParticleRadial: 2,
   glowEnabled: true,
   glowIntensity: 1,
   soulEnabled: true,
   soulIntensity: 1,
+  soulActiveEnabled: false,
   gradientEnabled: false,
   gradientIntensity: 1,
+  keywordColoringEnabled: true,
 };
 
 export type MonetBackgroundSource = 'cover-derived' | 'uploaded-global';
 export type MonetBackgroundLayout = 'full-overlay' | 'half-pane-gradient';
 export type MonetBackgroundWashColorMode = 'theme' | 'custom';
+export type NomandBackgroundSource = 'cover-derived' | 'uploaded-global';
+export type NomandBackgroundDitheringType = '2x2' | '4x4' | '8x8';
+export type NomandBackgroundEffect = 'dithering' | 'fluted-glass' | 'paper-texture' | 'halftone-dots' | 'lens-distortion';
+export type LatentBackgroundDisplayMode = 'dithering' | 'mesh' | 'both';
+export type LatentBackgroundColorSource = 'cover-theme' | 'cover-only';
 export type MonetAudioStyle = 'bar' | 'line';
 export type MonetPortraitSource = 'cover' | 'custom';
-export type VisualizerBackgroundMode = 'common' | 'monet' | 'url' | 'sora';
+export type BuiltinVisualizerBackgroundMode = 'common' | 'monet' | 'nomand' | 'latent' | 'url' | 'sora';
+export type VisualizerBackgroundMode = BuiltinVisualizerBackgroundMode | (string & {});
 
 export interface UrlBackgroundItem {
   id: string;
@@ -562,11 +839,61 @@ export interface MonetBackgroundTuning {
   backgroundHalfPaneOffsetX: number;
   backgroundWashColorMode: MonetBackgroundWashColorMode;
   backgroundWashCustomColor: string;
+  /** 整张背景图的缓慢缩放漂移；纯 CSS 合成层动画，不参与背景烘焙。 */
+  backgroundDriftEnabled: boolean;
+  /** 漂移幅度 0..1，同时决定位移距离和为防止露边而预放大的倍率。 */
+  backgroundDriftStrength: number;
+  /** 是否在烘焙的 overlay 里绘制那几条 1px 竖向纹理。 */
+  backgroundStreaksEnabled: boolean;
+}
+
+export interface NomandBackgroundTuning {
+  imageSource: NomandBackgroundSource;
+  effect: NomandBackgroundEffect;
+  ditheringType: NomandBackgroundDitheringType;
+  size: number;
+  colorSteps: number;
+  originalColors: boolean;
+  inverted: boolean;
+  flutedGlassSize: number;
+  flutedGlassDistortion: number;
+  flutedGlassBlur: number;
+  paperTextureContrast: number;
+  paperTextureRoughness: number;
+  paperTextureFiber: number;
+  halftoneDotsSize: number;
+  halftoneDotsRadius: number;
+  halftoneDotsContrast: number;
+  halftoneDotsOriginalColors: boolean;
+  halftoneDotsInverted: boolean;
+  lensDistortionSpread: number;
+  lensDistortionBulge: number;
+  lensDistortionDispersion: number;
+  overlayEnabled: boolean;
+  overlayOpacity: number;
+}
+
+export interface LatentBackgroundTuning {
+  displayMode: LatentBackgroundDisplayMode;
+  colorSource: LatentBackgroundColorSource;
+  dynamicOnlyInPlayer: boolean;
+  enhancedBeatResponse: boolean;
+  ditheringSpeed: number;
+  ditheringAudioSpeed: number;
+  ditheringSize: number;
+  ditheringOpacity: number;
+  meshSpeed: number;
+  meshAudioSpeed: number;
+  meshDistortion: number;
+  meshSwirl: number;
+  overlayEnabled: boolean;
+  overlayOpacity: number;
 }
 
 export interface MonetTuning {
   keywordColoringEnabled: boolean;
   showDescription: boolean;
+  showAudioVisualization: boolean;
   audioStyle: MonetAudioStyle;
   fontScale: number;
   portraitSource: MonetPortraitSource;
@@ -586,11 +913,58 @@ export const DEFAULT_MONET_BACKGROUND_TUNING: MonetBackgroundTuning = {
   backgroundHalfPaneOffsetX: 0,
   backgroundWashColorMode: 'theme',
   backgroundWashCustomColor: '#8fb7ff',
+  backgroundDriftEnabled: true,
+  backgroundDriftStrength: 0.5,
+  backgroundStreaksEnabled: true,
+};
+
+export const DEFAULT_NOMAND_BACKGROUND_TUNING: NomandBackgroundTuning = {
+  imageSource: 'cover-derived',
+  effect: 'dithering',
+  ditheringType: '8x8',
+  size: 3,
+  colorSteps: 4,
+  originalColors: false,
+  inverted: false,
+  flutedGlassSize: 0.5,
+  flutedGlassDistortion: 0.5,
+  flutedGlassBlur: 0.08,
+  paperTextureContrast: 0.32,
+  paperTextureRoughness: 0.42,
+  paperTextureFiber: 0.3,
+  halftoneDotsSize: 0.5,
+  halftoneDotsRadius: 1.25,
+  halftoneDotsContrast: 0.4,
+  halftoneDotsOriginalColors: false,
+  halftoneDotsInverted: false,
+  lensDistortionSpread: 0.45,
+  lensDistortionBulge: 0.3,
+  lensDistortionDispersion: 0.65,
+  overlayEnabled: true,
+  overlayOpacity: 0.35,
+};
+
+export const DEFAULT_LATENT_BACKGROUND_TUNING: LatentBackgroundTuning = {
+  displayMode: 'both',
+  colorSource: 'cover-theme',
+  dynamicOnlyInPlayer: true,
+  enhancedBeatResponse: true,
+  ditheringSpeed: 0.1,
+  ditheringAudioSpeed: 1.2,
+  ditheringSize: 2.5,
+  ditheringOpacity: 0.55,
+  meshSpeed: 0.3,
+  meshAudioSpeed: 2,
+  meshDistortion: 0.8,
+  meshSwirl: 0.1,
+  overlayEnabled: true,
+  overlayOpacity: 0.35,
 };
 
 export const DEFAULT_MONET_TUNING: MonetTuning = {
   keywordColoringEnabled: true,
   showDescription: true,
+  showAudioVisualization: true,
   audioStyle: 'bar',
   fontScale: 1.2,
   portraitSource: 'cover',
@@ -693,14 +1067,18 @@ export interface NeteasePlaylist {
 }
 
 export interface Artist {
-  id: number;
+  id: MediaId;
   name: string;
+  entityId?: string;
+  catalogRef?: ProviderCatalogRef;
 }
 
 export interface Album {
-  id: number;
+  id: MediaId;
   name: string;
-  picUrl?: string;
+  coverUrl?: string;
+  entityId?: string;
+  catalogRef?: ProviderCatalogRef;
 }
 
 export interface SongPrivilege {
@@ -725,25 +1103,27 @@ export interface NoCopyrightRecommendation {
 export type LyricProviderSource = 'netease' | 'qq' | 'kugou' | 'amll';
 export type AmllDbPlatform = 'ncm' | 'qq';
 
+export interface ReplayGainInfo {
+  /** ReplayGain gain values in decibels. */
+  trackGain?: number;
+  albumGain?: number;
+  /** ReplayGain peak values as positive linear ratios. */
+  trackPeak?: number;
+  albumPeak?: number;
+}
+
 export interface SongResult {
-  id: number;
+  id: MediaId;
   name: string;
   artists: Artist[];
   album: Album;
-  duration: number; // milliseconds usually from API
+  durationMs: number;
   isPureMusic?: boolean;
+  aliases?: string[];
+  translatedNames?: string[];
   t?: 0 | 1 | 2;
   sourceType?: 'netease' | 'cloud';
-  // Netease API raw fields
-  al?: {
-    id: number;
-    name: string;
-    picUrl?: string;
-  };
-  ar?: Artist[];
-  dt?: number; // duration in ms
-  alia?: string[]; // 别名
-  tns?: string[]; // 翻译名
+  sourceRef?: PlaybackSourceRef;
   fee?: number;
   noCopyrightRcmd?: NoCopyrightRecommendation | null;
   resourceState?: boolean;
@@ -751,6 +1131,7 @@ export interface SongResult {
   onlineLyricsState?: OnlineLyricsState;
   matchedLyricsSource?: LyricProviderSource;
   matchedLyricsProviderPlatform?: AmllDbPlatform;
+  replayGain?: ReplayGainInfo;
   qqMid?: string;
   kgHash?: string;
   amllDbPlatform?: AmllDbPlatform;
@@ -762,7 +1143,7 @@ export interface OnlineLyricsState {
   importedLyricsName?: string | null;
   hasOnlineOverride?: boolean;
   onlineOverrideLyrics?: LyricData | null;
-  matchedSongId?: number;
+  matchedSongId?: MediaId;
   matchedIsPureMusic?: boolean;
   matchedLyricsSource?: LyricProviderSource;
   matchedLyricsProviderPlatform?: AmllDbPlatform;
@@ -778,6 +1159,8 @@ export interface SearchResponse {
 
 // Local Music Types
 
+export type LocalLyricsPriority = 'local' | 'online';
+
 export interface LocalSong {
   id: string; // UUID for local file
   fileName: string;
@@ -791,19 +1174,18 @@ export interface LocalSong {
   bitrate?: number; // bps
   addedAt: number; // timestamp
 
-  // Extracted metadata from file tags
-  title?: string;
-  artist?: string;
-  album?: string;
+  // Canonical metadata and retained source snapshots
+  title: string;
+  titleOrigin: import('./types/localLibrary').LocalSongTitleOrigin;
+  importedMetadata: import('./types/localLibrary').LocalSongImportedMetadata;
+  onlineMetadata?: import('./types/localLibrary').LocalSongOnlineMetadata;
   trackNumber?: number;
   discNumber?: number;
   embeddedMetadataVersion?: number;
 
-  // Embedded metadata from file tags
-  embeddedTitle?: string;
-  embeddedArtist?: string;
-  embeddedAlbum?: string;
-  embeddedCover?: Blob; // Preferred local cover blob (folder cover or embedded art), stored in IndexedDB
+  localCoverAssetId?: string; // Content-addressed preferred local cover stored in local_cover_assets
+  localCoverSource?: import('./types/localCover').LocalCoverSourceKind;
+  localCoverNeedsAssetMigration?: boolean; // Retries local cover hashing/persistence during the next rescan
   replayGain?: number; // ReplayGain track gain in dB
   replayGainTrackGain?: number; // ReplayGain track gain in dB
   replayGainTrackPeak?: number; // ReplayGain track peak ratio
@@ -811,13 +1193,9 @@ export interface LocalSong {
   replayGainAlbumPeak?: number; // ReplayGain album peak ratio
 
   // Lyrics matching result
-  matchedSongId?: number; // Netease song ID
-  matchedArtists?: string; // Matched artist names (joined string)
-  matchedAlbumId?: number; // Netease album ID
-  matchedAlbumName?: string; // Netease album name
   matchedLyrics?: LyricData;
   matchedIsPureMusic?: boolean;
-  matchedCoverUrl?: string; // Cover image URL from matched song
+  matchedLyricsSongId?: number | string; // Provider-scoped ID used for the saved lyric result
   hasManualLyricSelection?: boolean;
   folderName?: string; // Name of the folder if imported via folder import
   noAutoMatch?: boolean; // If true, do not attempt to auto-match metadata
@@ -825,9 +1203,8 @@ export interface LocalSong {
   matchedLyricsProviderPlatform?: AmllDbPlatform;
 
   // User preferences for online data override (set via LyricMatchModal)
-  lyricsSource?: 'local' | 'embedded' | 'online';  // Explicit lyrics source selection; undefined = default priority (local > embedded > online)
+  lyricsSource?: 'local' | 'embedded' | 'online';  // Explicit lyrics source selection; undefined = the configured automatic priority
   useOnlineCover?: boolean;     // Prefer online cover over embedded cover
-  useOnlineMetadata?: boolean;  // Prefer online artist/album over embedded tags
 
   // Local Lyrics (.lrc / .vtt / .ttml / .qrc / .yrc / .krc files)
   hasLocalLyrics?: boolean;
@@ -887,13 +1264,27 @@ export interface LocalLibraryGroup {
   trackCount?: number;
   description?: string;
   albumId?: number;
+  entityId?: string;
   playlistId?: string;
 }
 
+export type {
+  LocalLibraryAssignment,
+  LocalLibraryAssignmentOrigin,
+  LocalLibraryEntity,
+  LocalLibraryEntityKind,
+  LocalSongImportedMetadata,
+  LocalSongMetadataSource,
+  LocalSongOnlineMetadata,
+  LocalSongReference,
+  LocalSongTitleOrigin,
+} from './types/localLibrary';
+
 // Extend SongResult to support local files and Navidrome files
 export interface UnifiedSong extends SongResult {
+  sourceRef: PlaybackSourceRef;
   isLocal?: boolean;
-  localData?: LocalSong;
+  localRef?: import('./types/localLibrary').LocalSongReference;
   isNavidrome?: boolean;
   navidromeData?: any;
 }
@@ -909,5 +1300,5 @@ export interface AudioBands {
     mid: MotionValue<number>;     // 400-1200Hz (Triangles)
     vocal: MotionValue<number>;   // 1000-3500Hz (Icons)
     treble: MotionValue<number>;  // 3500Hz+ (Crosses)
-    spectrum?: MotionValue<Uint8Array>; // Raw analyser FFT magnitude bins for full-spectrum visualizers
+    spectrum?: MotionValue<Uint8Array<ArrayBuffer>>; // Raw analyser FFT magnitude bins for full-spectrum visualizers
   }

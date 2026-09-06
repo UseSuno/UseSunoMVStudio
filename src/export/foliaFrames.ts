@@ -22,7 +22,7 @@ const captureFrame = (target: Window, signal: AbortSignal) => new Promise<ImageB
   target.postMessage({ type: 'verse:capture', requestId }, location.origin);
 });
 
-const supportedCanvasTemplates = new Set(['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-curtain']);
+const supportedCanvasTemplates = new Set(['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-curtain', 'folia-tempera', 'folia-sonnet']);
 
 // Canvas and WebGL templates can advance their media clock frame-by-frame without playing the audio.
 export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, peaks: number[], options: ExportOptions, clock: PlaybackClock, signal: AbortSignal, report: (progress: number, text: string) => void) {

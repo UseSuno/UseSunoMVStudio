@@ -7,7 +7,7 @@ import { measureNaturalWidth, prepareWithSegments } from '@chenglou/pretext';
 import { useMotionValue, animate, MotionValue, useSpring, motion } from 'framer-motion';
 import { DEFAULT_CLADDAGH_TUNING, type Line, type Theme } from '../../../types';
 import { buildLineGraphemeTimeline } from '../../../utils/lyrics/graphemeTiming';
-import { resolveThemeFontStack } from '../../../utils/fontStacks';
+import { resolveThemeFontStack, resolveThemeFontWeight } from '../../../utils/fontStacks';
 import { type VisualizerSharedProps } from '../definition';
 import { useVisualizerRuntime } from '../runtime';
 import { colorWithAlpha, mixColors } from '../colorMix';
@@ -355,7 +355,8 @@ const RingLine: React.FC<RingLineProps> = ({
 }) => {
     const fontStack = resolveThemeFontStack(theme);
     const baseFontSize = 72 * lyricsFontScale;
-    const fontSpec = `700 ${baseFontSize}px ${fontStack}`;
+    const fontWeight = resolveThemeFontWeight(theme, 700);
+    const fontSpec = `${fontWeight} ${baseFontSize}px ${fontStack}`;
 
     const baseColor = useMemo(() => colorWithAlpha(theme.primaryColor, 0.55), [theme.primaryColor]);
     const highlightColor = theme.accentColor || theme.primaryColor;
@@ -708,7 +709,7 @@ const RingLine: React.FC<RingLineProps> = ({
                         willChange: 'transform, opacity, filter, color, text-shadow',
                         fontFamily: fontStack,
                         fontSize: `${baseFontSize}px`,
-                        fontWeight: 700,
+                        fontWeight,
                         letterSpacing: `${CLADDAGH_LETTER_SPACING_EM}em`,
                         whiteSpace: 'nowrap',
                         color: baseColor,
@@ -730,9 +731,12 @@ const VisualizerCladdagh: React.FC<VisualizerSharedProps> = (props) => {
         subtitleTheme,
         showText = true,
         lyricsFontScale = 1.0,
+        subtitleFontScale = 1,
         subtitleOverlayOpacity,
+        subtitleOverlayBackground,
         hideTranslationSubtitle,
         showSubtitleTranslation,
+        subtitleContentMode,
         audioPower,
         audioBands,
         claddaghTuning = DEFAULT_CLADDAGH_TUNING,
@@ -769,7 +773,8 @@ const VisualizerCladdagh: React.FC<VisualizerSharedProps> = (props) => {
     });
     const fontStack = resolveThemeFontStack(theme);
     const baseFontSize = 72 * lyricsFontScale;
-    const fontSpec = `700 ${baseFontSize}px ${fontStack}`;
+    const fontWeight = resolveThemeFontWeight(theme, 700);
+    const fontSpec = `${fontWeight} ${baseFontSize}px ${fontStack}`;
 
     const containerRef = useRef<HTMLDivElement>(null);
     const axisLineRef = useRef<HTMLDivElement>(null);
@@ -1015,8 +1020,11 @@ const VisualizerCladdagh: React.FC<VisualizerSharedProps> = (props) => {
                     translationFontSize="clamp(1.1rem, 2.2vw, 1.45rem)"
                     upcomingFontSize="clamp(0.95rem, 1.8vw, 1.2rem)"
                     subtitleOverlayOpacity={subtitleOverlayOpacity}
+                    subtitleOverlayBackground={subtitleOverlayBackground}
+                    subtitleFontScale={subtitleFontScale}
                     hideTranslationSubtitle={hideTranslationSubtitle}
                     showSubtitleTranslation={showSubtitleTranslation}
+                    subtitleContentMode={subtitleContentMode}
                 />
             )}
         </VisualizerShell>

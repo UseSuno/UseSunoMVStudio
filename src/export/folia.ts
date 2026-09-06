@@ -8,6 +8,14 @@ import { recordingMime } from './realtime';
 interface CroppableTrack extends MediaStreamTrack { cropTo(target: unknown): Promise<void> }
 interface CropAPI { fromElement(element: Element): Promise<unknown> }
 export function hasRegionCapture() { return !!(window as unknown as { CropTarget?: CropAPI }).CropTarget && !!navigator.mediaDevices?.getDisplayMedia; }
+function collectCanvasLayers(root: Document | ShadowRoot | Element, output: HTMLCanvasElement[] = []) {
+  for (const child of Array.from(root.children)) {
+    if (child instanceof HTMLCanvasElement && child.width > 0 && child.height > 0) output.push(child);
+    if (child.shadowRoot) collectCanvasLayers(child.shadowRoot, output);
+    collectCanvasLayers(child, output);
+  }
+  return output;
+}
 export async function recordFolia(project: Project, buffer: AudioBuffer, peaks: number[], options: ExportOptions, clock: PlaybackClock, signal: AbortSignal, report: (p: number, s: string) => void): Promise<Blob> {
   const iframe = document.querySelector<HTMLIFrameElement>('.folia-stage-frame');
   if (!iframe?.contentWindow || !iframe.contentDocument) throw new Error('Folia 舞台尚未加载。');
@@ -27,7 +35,7 @@ export async function recordFolia(project: Project, buffer: AudioBuffer, peaks: 
   const draw = () => {
     ctx.fillStyle = foliaTheme(project).backgroundColor; ctx.fillRect(0, 0, width, height);
     if (screenVideo && screenVideo.readyState >= 2) { ctx.drawImage(screenVideo, 0, 0, width, height); return; }
-    const layers = [...iframe.contentDocument!.querySelectorAll('canvas')].filter(c => c.width && c.height);
+    const layers = collectCanvasLayers(iframe.contentDocument!);
     if (!layers.length) throw new Error('原版画布未准备好，请先播放预览后重试。');
     for (const layer of layers) ctx.drawImage(layer, 0, 0, width, height);
   };

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, MotionValue, Variants, useMotionValueEvent } f
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_PARTITA_TUNING, Line, Theme, Word as WordType, AudioBands, type PartitaTuning } from '../../../types';
 import { buildDisplayWordsFromLayoutUnits, buildPostLyricLayoutUnits, type LyricLayoutUnit } from '../../../utils/lyrics/cjkSemanticLayout';
+import { getWordSegmentationKey } from '../../../utils/lyrics/wordSegmentation';
 import { buildWordGraphemeTimings } from '../../../utils/lyrics/graphemeTiming';
 import { getLineRenderEndTime, getLineRenderHints } from '../../../utils/lyrics/renderHints';
 import { shouldPreheatLine, useVisualizerRuntime, type VisualizerPreheatWindow } from '../runtime';
@@ -12,6 +13,7 @@ import { type VisualizerSharedProps } from '../definition';
 import VisualizerShell from '../VisualizerShell';
 import VisualizerSubtitleOverlay from '../VisualizerSubtitleOverlay';
 import { resolveWordColor } from '../wordColoring';
+import { resolveThemeFontWeight } from '../../../utils/fontStacks';
 
 // This one is still word-driven, but unlike Classic it needs to pre-build a column/chunk structure first.
 // The flow is basically: ask runtime for the active line, optionally preheat the upcoming line,
@@ -312,7 +314,7 @@ const buildSequentialColumns = (line: Line, theme: Theme, windowHeight: number, 
     };
 };
 
-const buildPartitaLayoutCacheKey = (
+export const buildPartitaLayoutCacheKey = (
     line: Line,
     theme: Theme,
     windowHeight: number,
@@ -325,7 +327,12 @@ const buildPartitaLayoutCacheKey = (
         line.endTime,
         line.words.length,
         line.fullText,
+        // The saved split feeds buildPostLyricLayoutUnits below, so it changes the columns. The
+        // cache outlives a re-segmentation of the song playing (it is only bounded by its LRU),
+        // so without this a line already on screen kept the layout built from the old split.
+        getWordSegmentationKey(line),
         theme.animationIntensity,
+        theme.fontWeight ?? 'auto',
         windowHeightBucket,
         tuning.staggerMin,
         tuning.staggerMax,
@@ -409,9 +416,10 @@ const PartitaWord: React.FC<{
             variants={layoutVariants}
             initial="waiting"
             animate={status}
-            className="font-bold inline-block origin-center relative will-change-transform whitespace-nowrap"
+            className="inline-block origin-center relative will-change-transform whitespace-nowrap"
             style={{
                 fontSize,
+                fontWeight: resolveThemeFontWeight(theme, 700),
                 lineHeight: 1.22,
                 marginRight: '0.8rem',
             }}
@@ -693,10 +701,13 @@ const VisualizerPartita: React.FC<VisualizerPartitaProps> = (props) => {
         showText = true,
         partitaTuning = DEFAULT_PARTITA_TUNING,
         lyricsFontScale = 1,
+        subtitleFontScale = 1,
         subtitleOverlayOpacity,
+        subtitleOverlayBackground,
         isPlayerChromeHidden = false,
         hideTranslationSubtitle = false,
         showSubtitleTranslation = true,
+        subtitleContentMode,
     } = props;
     const { t } = useTranslation();
     const [windowHeight, setWindowHeight] = useState(800);
@@ -1022,9 +1033,12 @@ const VisualizerPartita: React.FC<VisualizerPartitaProps> = (props) => {
                 translationFontSize={translationFontSize}
                 upcomingFontSize={upcomingFontSize}
                 subtitleOverlayOpacity={subtitleOverlayOpacity}
+                subtitleOverlayBackground={subtitleOverlayBackground}
+                subtitleFontScale={subtitleFontScale}
                 isPlayerChromeHidden={isPlayerChromeHidden}
                 hideTranslationSubtitle={hideTranslationSubtitle}
                 showSubtitleTranslation={showSubtitleTranslation}
+                subtitleContentMode={subtitleContentMode}
             />
         </VisualizerShell>
     );

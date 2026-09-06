@@ -12,9 +12,10 @@ it('keeps a composed emoji as a single waypoint', () => {
 
 import { defaultProject } from '../src/domain/model';
 import { validateProject } from '../src/persistence/project';
-it('migrates the old curtain setting to a standalone theme', () => {
+it('migrates legacy aurora themes into the independent background field', () => {
   const result = validateProject({...defaultProject([]), template:'folia-aurora', auroraBackground:'curtain'});
-  expect(result.template).toBe('folia-curtain');
+  expect(result.template).toBe('folia-diorama');
+  expect(result.background).toBe('aurora-curtain');
   expect(result.auroraBackground).toBeUndefined();
-  expect(validateProject({...defaultProject([]), template:'folia-aurora'}).template).toBe('folia-aurora');
+  expect(validateProject({...defaultProject([]), template:'folia-aurora', background:undefined as never}).background).toBe('aurora-nebula');
 });

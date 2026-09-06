@@ -7,7 +7,7 @@ import { layoutWithLines, prepareWithSegments, type LayoutLine, type LayoutCurso
 import { AudioBands, DEFAULT_CADENZA_TUNING, Line, Theme, Word as WordType, type CadenzaTuning } from '../../../types';
 import { buildWordGraphemeTimings, type GraphemeTiming } from '../../../utils/lyrics/graphemeTiming';
 import { getLineRenderEndTime, getLineTransitionTiming, type LineTransitionTiming } from '../../../utils/lyrics/renderHints';
-import { resolveThemeFontStack } from '../../../utils/fontStacks';
+import { resolveThemeFontStack, resolveThemeFontWeight } from '../../../utils/fontStacks';
 import { colorWithAlpha, mixColors } from '../colorMix';
 import { prepareActiveAndUpcoming, useVisualizerRuntime } from '../runtime';
 import { type VisualizerSharedProps } from '../definition';
@@ -371,7 +371,7 @@ const getClassicBodyMix = (time: number, lineTiming: ResolvedLineRenderTiming, w
     return 1 - fadeOut;
 };
 
-const getClassicLineEnvelope = (time: number, line: Line | null, lineTiming: ResolvedLineRenderTiming | null) => {
+const getClassicLineEnvelope = (time: number, line: Line | null, lineTiming: ResolvedLineRenderTiming) => {
     if (!line) {
         return {
             opacity: 1,
@@ -380,9 +380,9 @@ const getClassicLineEnvelope = (time: number, line: Line | null, lineTiming: Res
         };
     }
 
-    const renderHints = lineTiming?.renderHints ?? null;
-    const lineEndTime = lineTiming?.lineRenderEndTime ?? line.endTime;
-    const linePassStart = Math.max(lineTiming?.lastWordEndTime ?? line.endTime, line.startTime) + (lineTiming?.linePassHold ?? 0);
+    const renderHints = lineTiming.renderHints;
+    const lineEndTime = lineTiming.lineRenderEndTime;
+    const linePassStart = Math.max(lineTiming.lastWordEndTime, line.startTime) + lineTiming.linePassHold;
 
     if (renderHints?.lineTransitionMode === 'none') {
         return {
@@ -492,7 +492,7 @@ const chooseFontPx = (width: number, line: Line) => {
     return clamp(widthBase - lengthPenalty - densityPenalty, 28, 104);
 };
 
-const buildCanvasFont = (theme: Theme, fontPx: number) => `700 ${fontPx}px ${resolveThemeFontStack(theme)}`;
+const buildCanvasFont = (theme: Theme, fontPx: number) => `${resolveThemeFontWeight(theme, 700)} ${fontPx}px ${resolveThemeFontStack(theme)}`;
 
 const buildPreparedState = (
     line: Line,
@@ -1274,10 +1274,13 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
         showText = true,
         cadenzaTuning = DEFAULT_CADENZA_TUNING,
         lyricsFontScale = 1,
+        subtitleFontScale = 1,
         subtitleOverlayOpacity,
+        subtitleOverlayBackground,
         isPlayerChromeHidden = false,
         hideTranslationSubtitle = false,
         showSubtitleTranslation = true,
+        subtitleContentMode,
     } = props;
     const { t } = useTranslation();
     const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -1331,6 +1334,7 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
             theme.fontStyle,
             theme.fontFamily ?? '',
             theme.fontFamilyStack?.join(',') ?? '',
+            theme.fontWeight ?? 'auto',
             theme.animationIntensity,
             theme.accentColor,
             tuning.fontScale,
@@ -1343,6 +1347,7 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
         theme.animationIntensity,
         theme.fontFamily,
         theme.fontFamilyStack,
+        theme.fontWeight,
         theme.fontStyle,
         theme.wordColors,
         tuning.fontScale,
@@ -1381,7 +1386,7 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
     }, []);
 
     const preparedState = useMemo<PreparedState | null>(() => {
-        const getOrPrepareState = (line: Line | null) => {
+        const getOrPrepareState = (line: Line | null | undefined) => {
             if (!line) {
                 return null;
             }
@@ -1718,9 +1723,12 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
                 translationFontSize={translationFontSize}
                 upcomingFontSize={upcomingFontSize}
                 subtitleOverlayOpacity={subtitleOverlayOpacity}
+                subtitleOverlayBackground={subtitleOverlayBackground}
+                subtitleFontScale={subtitleFontScale}
                 isPlayerChromeHidden={isPlayerChromeHidden}
                 hideTranslationSubtitle={hideTranslationSubtitle}
                 showSubtitleTranslation={showSubtitleTranslation}
+                subtitleContentMode={subtitleContentMode}
             />
         </VisualizerShell>
     );

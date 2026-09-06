@@ -10,21 +10,29 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@applemusic-like-lyrics/ttml": "^1.0.1",
     "@chenglou/pretext": "^0.0.7",
+    "@paper-design/shaders-react": "^0.0.80",
     "@react-three/fiber": "^9.7.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@xmldom/xmldom": "^0.9.12",
+    "dexie": "^4.4.5",
     "fflate": "^0.8.2",
     "framer-motion": "^12.43.0",
     "i18next": "^25.10.10",
+    "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^0.468.0",
     "mediabunny": "^1.0.0",
     "music-metadata": "^11.0.0",
+    "pixi.js": "^8.20.1",
     "react": "^19.1.0",
+    "react-colorful": "^5.8.1",
     "react-dom": "^19.1.0",
     "react-i18next": "^16.6.6",
     "tailwindcss": "^4.3.3",
     "three": "^0.185.1",
-    "twgl.js": "^7.0.0"
+    "twgl.js": "^7.0.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

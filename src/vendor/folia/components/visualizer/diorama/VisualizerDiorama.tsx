@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_DIORAMA_TUNING, type Line } from '../../../types';
+import { isInterludeLine } from '../../../utils/lyrics/parserCore';
 import { useVisualizerRuntime } from '../runtime';
 import { type VisualizerSharedProps } from '../definition';
 import VisualizerShell from '../VisualizerShell';
@@ -108,9 +109,12 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
         audioBands,
         showText = true,
         lyricsFontScale = 1,
+        subtitleFontScale = 1,
         subtitleOverlayOpacity,
+        subtitleOverlayBackground,
         isPlayerChromeHidden = false,
         hideTranslationSubtitle = false,
+        subtitleContentMode,
         seed,
         dioramaTuning,
     } = props;
@@ -241,7 +245,22 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
     // makes the prune below drop the outgoing scene (it looks "already flown past"). It also then snaps back
     // to 0 a frame later, which the loop-restart test misreads as a loop.
     const instrumentalReadHead = instrumentalSeedRef.current === gatedSeed ? instrumentalIndex : 0;
-    const effectiveLineIndex = isInstrumental ? instrumentalReadHead : currentLineIndex;
+    // An INTERLUDE line ('......', which attachInterludes inserts into EVERY gap longer than 3s) is a
+    // placeholder, not a lyric - every other visualizer special-cases it (classic centres it, cadenza
+    // gives it its own drift, cappella swaps in an image). In a corridor the read-head IS the
+    // composition, so the diorama not special-casing it meant the camera left the line the viewer is
+    // reading, flew a full cinematic shot forward, and framed six dots for the length of the gap.
+    // That is what "the camera stops locking onto the lyric after a while" is: it is not drift, it is
+    // the camera being handed a new line to go and frame.
+    //
+    // Treat it exactly as the -1 the parent already sends mid-gap: the sticky index below keeps the
+    // last real line, and resolveHoldSettle then eases the shot back onto it. The interlude stays in
+    // the corridor (same geometry, same indices) - it just never becomes the thing being framed.
+    const onInterlude = !isInstrumental
+        && currentLineIndex >= 0
+        && !!gatedLines[currentLineIndex]
+        && isInterludeLine(gatedLines[currentLineIndex]);
+    const effectiveLineIndex = isInstrumental ? instrumentalReadHead : onInterlude ? -1 : currentLineIndex;
 
     // ── Transition state machine (spawn-offset + camera flight) ──────────────────────────────────
     // The diorama gets no explicit "song changed"/"looped" event, so both are inferred here from the
@@ -323,6 +342,16 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
     const startingTransition = (keyChanged && hadPrevious) || isLoopRestart;
     if (startingTransition) {
         transitionEpochRef.current += 1;
+        // One line per flight, saying WHICH of the two reasons started it. An automix blend should
+        // print exactly one "new song" when the hold releases. A "loop restart" at the moment a
+        // blend arms is the failure this is here to make visible: it means something reset the
+        // lyric read-head under the outgoing song, and the camera is about to fly a round trip to
+        // nowhere before the real change even happens.
+        console.log(
+            `[Diorama] camera flight #${transitionEpochRef.current}:`
+            + ` ${isNewSong ? 'new song' : 'loop restart'}, seed ${String(gatedSeed ?? 'none')},`
+            + ` leaving line ${outgoingGlobal}`,
+        );
         setTransition({ epoch: transitionEpochRef.current, outgoingIndex: outgoingGlobal });
     }
     if (effectiveLineIndex >= 0) {
@@ -399,7 +428,18 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
                         audioBands={audioBands}
                         motion={motionParams}
                         showLyrics={showText}
+                        geometryVisibility={dioramaTuning?.geometryVisibility ?? DEFAULT_DIORAMA_TUNING.geometryVisibility}
+                        particleDensity={dioramaTuning?.particleDensity ?? DEFAULT_DIORAMA_TUNING.particleDensity}
+                        particleScale={dioramaTuning?.particleScale ?? DEFAULT_DIORAMA_TUNING.particleScale}
+                        particleGlowEnabled={dioramaTuning?.particleGlowEnabled ?? DEFAULT_DIORAMA_TUNING.particleGlowEnabled}
+                        particleGlowIntensity={dioramaTuning?.particleGlowIntensity ?? DEFAULT_DIORAMA_TUNING.particleGlowIntensity}
                         showParticles={dioramaTuning?.showParticles ?? true}
+                        backgroundParticleCircumference={
+                            dioramaTuning?.backgroundParticleCircumference ?? DEFAULT_DIORAMA_TUNING.backgroundParticleCircumference
+                        }
+                        backgroundParticleRadial={
+                            dioramaTuning?.backgroundParticleRadial ?? DEFAULT_DIORAMA_TUNING.backgroundParticleRadial
+                        }
                         lyricsFontScale={lyricsFontScale}
                         // Each follow-sing effect resolves to an EFFECTIVE strength here (0 when its
                         // toggle is off) - the scene renders the three effects on fully separate paths.
@@ -407,8 +447,12 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
                             ? (dioramaTuning?.glowIntensity ?? DEFAULT_DIORAMA_TUNING.glowIntensity) : 0}
                         soulIntensity={(dioramaTuning?.soulEnabled ?? DEFAULT_DIORAMA_TUNING.soulEnabled)
                             ? (dioramaTuning?.soulIntensity ?? DEFAULT_DIORAMA_TUNING.soulIntensity) : 0}
+                        soulActiveEnabled={(dioramaTuning?.soulEnabled ?? DEFAULT_DIORAMA_TUNING.soulEnabled)
+                            && (dioramaTuning?.soulActiveEnabled ?? DEFAULT_DIORAMA_TUNING.soulActiveEnabled)}
                         gradientIntensity={(dioramaTuning?.gradientEnabled ?? DEFAULT_DIORAMA_TUNING.gradientEnabled)
                             ? (dioramaTuning?.gradientIntensity ?? DEFAULT_DIORAMA_TUNING.gradientIntensity) : 0}
+                        keywordColoringEnabled={dioramaTuning?.keywordColoringEnabled
+                            ?? DEFAULT_DIORAMA_TUNING.keywordColoringEnabled}
                     />
                 </Canvas>
             </div>
@@ -440,8 +484,11 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
                 translationFontSize={translationFontSize}
                 upcomingFontSize={upcomingFontSize}
                 subtitleOverlayOpacity={subtitleOverlayOpacity}
+                subtitleOverlayBackground={subtitleOverlayBackground}
+                subtitleFontScale={subtitleFontScale}
                 isPlayerChromeHidden={isPlayerChromeHidden}
                 hideTranslationSubtitle={hideTranslationSubtitle}
+                subtitleContentMode={subtitleContentMode}
             />
         </VisualizerShell>
     );

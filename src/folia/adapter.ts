@@ -6,7 +6,7 @@ import { fontFamily, fontStack } from '../fonts/fonts';
 export function foliaLines(project: Project): Line[] {
   return project.lines.filter(l => l.start !== null && l.end !== null).map(l => {
     const words = l.words.length ? l.words.map(w => ({ text: w.text, startTime: w.start, endTime: w.end })) : project.estimatedReveal ? Array.from(new Intl.Segmenter(undefined, { granularity: 'word' }).segment(l.text)).map((s, i, all) => ({ text: s.segment, startTime: l.start! + (l.end! - l.start!) * i / all.length, endTime: l.start! + (l.end! - l.start!) * (i + 1) / all.length })) : [{ text: l.text, startTime: l.start!, endTime: l.end! }];
-    const line: Line = { id: l.id, fullText: l.text, startTime: l.start!, endTime: l.end!, words };
+    const line: Line = { id: l.id, fullText: l.text, startTime: l.start!, endTime: l.end!, words, wordSegments: l.wordSegments };
     line.renderHints = buildLineRenderHints(line); return line;
   }).sort((a, b) => a.startTime - b.startTime);
 }

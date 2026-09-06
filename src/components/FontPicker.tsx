@@ -19,9 +19,10 @@ function FontRow({ family, source, selected, choose }: { family: string; source:
     }, { threshold: .05 });
     observer.observe(row.current); return () => observer.disconnect();
   }, [family, source]);
-  return <button ref={row} className={`font-picker-item ${selected ? 'selected' : ''}`} onClick={choose}>
+  const sampleStyle = { fontFamily: `"${family.replace(/["\\]/g, '\\$&')}", "Noto Sans SC", sans-serif`, fontWeight: source === 'google' ? preferredFontWeight(family) : 400 };
+  return <button ref={row} className={`font-picker-item ${selected ? 'selected' : ''}`} onClick={choose} style={sampleStyle}>
     <span className="font-source">{source === 'google' ? 'G' : '本地'}</span>
-    <span className="font-name" style={ready ? { fontFamily: `"${family}", "Noto Sans SC", sans-serif`, fontWeight: source === 'google' ? preferredFontWeight(family) : 400 } : undefined}>{family}</span>
+    <span className="font-name" style={ready ? sampleStyle : undefined}>{family}</span>
     <Check size={14}/>
   </button>;
 }

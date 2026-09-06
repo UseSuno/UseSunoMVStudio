@@ -1,7 +1,6 @@
 // @ts-nocheck
 // Vendored from Folia (AGPL-3.0); see THIRD_PARTY_NOTICES.md.
 import type {
-    AuroraTuning,
     CappellaTuning,
     CadenzaTuning,
     ClassicTuning,
@@ -10,6 +9,9 @@ import type {
     FumeTuning,
     MonetTuning,
     PartitaTuning,
+    PendoloTuning,
+    SonnetTuning,
+    TemperaTuning,
     TiltTuning,
     VisualizerMode,
 } from '../../types';
@@ -18,7 +20,6 @@ import type { VisualizerSharedProps } from './definition';
 // src/components/visualizer/tuningRegistry.ts
 // Pure-data registry for transporting heterogeneous visualizer tuning without importing renderers.
 export interface VisualizerTuningMap {
-    aurora: AuroraTuning;
     classic: ClassicTuning;
     cadenza: CadenzaTuning;
     partita: PartitaTuning;
@@ -28,6 +29,9 @@ export interface VisualizerTuningMap {
     tilt: TiltTuning;
     diorama: DioramaTuning;
     monet: MonetTuning;
+    pendolo: PendoloTuning;
+    sonnet: SonnetTuning;
+    tempera: TemperaTuning;
 }
 
 export type VisualizerTuningMode = keyof VisualizerTuningMap;

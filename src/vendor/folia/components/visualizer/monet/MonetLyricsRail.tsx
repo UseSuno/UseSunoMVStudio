@@ -3,9 +3,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useTransform, MotionValue } from 'framer-motion';
 import type { Theme, AudioBands, Line } from '../../../types';
+import { resolveThemeFontWeight } from '../../../utils/fontStacks';
 import type { GraphemeTiming } from '../../../utils/lyrics/graphemeTiming';
 import { getLineRenderEndTime } from '../../../utils/lyrics/renderHints';
+import { useFontsEpoch } from '../../../hooks/useFontsEpoch';
 import { colorWithAlpha, mixColors } from '../colorMix';
+import { resolveMonetFillWidth, resolveMonetGlow, MONET_SCROLL_SPRING, MONET_SCALE_SPRING } from './monetLyricMotion';
 import {
     buildWordColorRangesFromMatchers,
     prepareWordColorMatchers,
@@ -14,9 +17,14 @@ import {
     type WordColorMatcher,
 } from '../wordColoring';
 import {
+    MONET_RAIL_BASE_MAX_HEIGHT_PX,
+    MONET_RAIL_BASE_MAX_WIDTH_PX,
     buildMonetDisplayTokens,
+    clearMonetMeasurementCaches,
     measureMonetGraphemeOffsets,
     measureMonetLineLayout,
+    resolveMonetSweepEdgeSoftness,
+    resolveMonetSweepEnd,
     resolveMonetWordStatus,
     type MonetLineStatus,
     type MonetMeasuredLineLayout,
@@ -37,6 +45,7 @@ interface MonetLyricsRailProps {
     translationFontPx: number;
     fontStack: string;
     translationFontStack?: string;
+    subtitleTheme?: Theme;
     keywordColoringEnabled: boolean;
     emptyText: string;
     showSubtitleTranslation?: boolean;
@@ -44,6 +53,8 @@ interface MonetLyricsRailProps {
     audioBands?: AudioBands;
     onLyricLineSeek?: (lyricTimeSec: number) => void;
     seekDisabled?: boolean;
+    /** Shared large-screen factor. Owned by VisualizerMonet so the column and the font scale together. */
+    layoutScale?: number;
 }
 
 interface MonetRailSize {
@@ -73,8 +84,14 @@ const MONET_RAIL_WIDTH_FALLBACK_PX = 680;
 const MONET_RAIL_HEIGHT_FALLBACK_PX = 340;
 const MONET_ACTIVE_GAP_PX = 18;
 const MONET_INACTIVE_GAP_PX = 14;
-const MONET_GLOW_RISE_DURATION_SCALE = 1.18;
-const MONET_GLOW_PASS_TAIL_SECONDS = 1.05;
+// Ratios reproduce the fixed gaps above at the default 36.5px lyric font, so nothing changes at
+// normal sizes; past that the gaps grow with the text instead of collapsing into it.
+// The height cap must clear the active block at large font scales, where a narrow column pushes
+// a normal lyric past four rows. Seven rows stays below the base cap at default sizes, so this
+// only ever raises the ceiling for oversized text on a tall display.
+const MONET_RAIL_MIN_ROWS = 7;
+const MONET_ACTIVE_GAP_RATIO = 0.49;
+const MONET_INACTIVE_GAP_RATIO = 0.38;
 const MONET_SCROLL_IDLE_RESET_MS = 1800;
 const MONET_SCROLL_STEP_PX = 72;
 const MONET_TOUCH_STEP_PX = 52;
@@ -83,12 +100,11 @@ const MONET_SCROLL_AFTER = 4;
 const MONET_LAYOUT_CACHE_LIMIT = 240;
 const MONET_RAIL_SCROLL_EVENT_OPTIONS: AddEventListenerOptions = { passive: false };
 const MONET_SCROLL_TRANSITION = {
-    y: { type: 'spring', stiffness: 142, damping: 28, mass: 0.82 },
-    scale: { type: 'spring', stiffness: 150, damping: 30, mass: 0.78 },
+    y: { type: 'spring', ...MONET_SCROLL_SPRING },
+    scale: { type: 'spring', ...MONET_SCALE_SPRING },
     opacity: { duration: 0.28, ease: [0.32, 0.72, 0, 1] },
     filter: { duration: 0.32, ease: [0.32, 0.72, 0, 1] },
 } as const;
-
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const clampScrollSteps = (steps: number) => Math.max(-1, Math.min(1, steps));
 const getScrollDirection = (delta: number) => (delta === 0 ? 0 : delta > 0 ? 1 : -1);
@@ -139,10 +155,14 @@ const resolveLineTone = (
     };
 };
 
-const resolveLineGap = (previous: PositionedMonetLineEntry, next: PositionedMonetLineEntry): number => (
+const resolveLineGap = (
+    previous: PositionedMonetLineEntry,
+    next: PositionedMonetLineEntry,
+    lyricFontPx: number,
+): number => (
     previous.status === 'active' || next.status === 'active'
-        ? MONET_ACTIVE_GAP_PX
-        : MONET_INACTIVE_GAP_PX
+        ? Math.max(MONET_ACTIVE_GAP_PX, lyricFontPx * MONET_ACTIVE_GAP_RATIO)
+        : Math.max(MONET_INACTIVE_GAP_PX, lyricFontPx * MONET_INACTIVE_GAP_RATIO)
 );
 
 const resolveRailLineStatus = (lineIndex: number, activeLineIndex: number): MonetLineStatus => {
@@ -200,6 +220,8 @@ const buildMonetLayoutCacheKey = (
     translationFontPx: number,
     fontStack: string,
     translationFontStack: string,
+    fontWeight: number,
+    translationFontWeight: number,
     maxWidthPx: number,
     showSubtitleTranslation: boolean,
 ) => [
@@ -213,6 +235,8 @@ const buildMonetLayoutCacheKey = (
     translationFontPx,
     fontStack,
     translationFontStack,
+    fontWeight,
+    translationFontWeight,
     maxWidthPx,
     showSubtitleTranslation ? 1 : 0,
 ].join('\u0001');
@@ -224,10 +248,12 @@ const getOrMeasureMonetLineLayout = (
     translationFontPx: number,
     fontStack: string,
     translationFontStack: string,
+    fontWeight: number,
+    translationFontWeight: number,
     maxWidthPx: number,
     showSubtitleTranslation: boolean,
 ) => {
-    const cacheKey = buildMonetLayoutCacheKey(entry, fontPx, translationFontPx, fontStack, translationFontStack, maxWidthPx, showSubtitleTranslation);
+    const cacheKey = buildMonetLayoutCacheKey(entry, fontPx, translationFontPx, fontStack, translationFontStack, fontWeight, translationFontWeight, maxWidthPx, showSubtitleTranslation);
     const cached = cache.get(cacheKey);
     if (cached) {
         return cached;
@@ -240,6 +266,8 @@ const getOrMeasureMonetLineLayout = (
         translationFontPx,
         fontStack,
         translationFontStack,
+        fontWeight,
+        translationFontWeight,
         maxWidthPx,
         showSubtitleTranslation,
     });
@@ -290,6 +318,8 @@ const buildPositionedEntries = (
     translationFontPx: number,
     fontStack: string,
     translationFontStack: string,
+    fontWeight: number,
+    translationFontWeight: number,
     glowBufferPx: number,
     showSubtitleTranslation: boolean,
     layoutCache: MonetLayoutCache,
@@ -300,7 +330,10 @@ const buildPositionedEntries = (
     const contentWidthPx = Math.max(railWidth - glowBufferPx * 2, 0);
 
     const measuredEntries: PositionedMonetLineEntry[] = entries.map(entry => {
-        const tone = resolveLineTone(entry, theme, inactiveScale);
+        const tone = {
+            ...resolveLineTone(entry, theme, inactiveScale),
+            fontWeight,
+        };
         const layout = getOrMeasureMonetLineLayout(
             layoutCache,
             entry,
@@ -308,6 +341,8 @@ const buildPositionedEntries = (
             translationFontPx,
             fontStack,
             translationFontStack,
+            fontWeight,
+            translationFontWeight,
             contentWidthPx - 8,
             showSubtitleTranslation,
         );
@@ -332,13 +367,13 @@ const buildPositionedEntries = (
     for (let index = anchorIndex + 1; index < measuredEntries.length; index += 1) {
         const previous = measuredEntries[index - 1];
         const current = measuredEntries[index];
-        current.y = previous.y + previous.scaledHeight + resolveLineGap(previous, current);
+        current.y = previous.y + previous.scaledHeight + resolveLineGap(previous, current, lyricFontPx);
     }
 
     for (let index = anchorIndex - 1; index >= 0; index -= 1) {
         const current = measuredEntries[index];
         const next = measuredEntries[index + 1];
-        current.y = next.y - current.scaledHeight - resolveLineGap(current, next);
+        current.y = next.y - current.scaledHeight - resolveLineGap(current, next, lyricFontPx);
     }
 
     return measuredEntries;
@@ -350,18 +385,65 @@ const getLineMask = (isClipped: boolean, fadePx: number) => (
         : undefined
 );
 
+/**
+ * Cuts a truncated context line at its last visible text row rather than at the box edge.
+ * `overflow: hidden` clips at the padding box, and that padding carries `vGlowBufferPx`
+ * (1.2x the lyric font) of glow headroom — at large font scales that is more than a whole line,
+ * so the clipped row stays visible and lands on top of the neighbouring lyric.
+ */
+const getClippedTextMask = (
+    isClipped: boolean,
+    contentBottomPx: number,
+    fadePx: number,
+) => {
+    if (!isClipped) {
+        return undefined;
+    }
+
+    const solidEndPx = Math.max(contentBottomPx - fadePx, 0);
+    return `linear-gradient(180deg, black 0px, black ${solidEndPx}px, transparent ${contentBottomPx}px)`;
+};
+
+/** Softens the right edge so a token wider than the column fades out instead of being sliced mid-glyph. */
+const getEdgeFadeMask = (isOverflowing: boolean, fadePx: number) => (
+    isOverflowing
+        ? `linear-gradient(90deg, black 0%, black calc(100% - ${fadePx}px), transparent 100%)`
+        : undefined
+);
+
+/** Intersects the vertical clip fade with the horizontal edge fade, so a line can carry both. */
+const composeLineMasks = (...masks: (string | undefined)[]) => {
+    const layers = masks.filter((mask): mask is string => Boolean(mask));
+    if (layers.length === 0) {
+        return undefined;
+    }
+
+    return {
+        WebkitMaskImage: layers.join(', '),
+        maskImage: layers.join(', '),
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskSize: '100% 100%',
+        maskSize: '100% 100%',
+        ...(layers.length > 1
+            ? { WebkitMaskComposite: 'source-in', maskComposite: 'intersect' }
+            : {}),
+    } as const;
+};
+
 const MonetTimedTokenSpan: React.FC<{
     entry: PositionedMonetLineEntry;
     currentTime: MotionValue<number>;
     accentColor: string;
     fontPx: number;
     fontStack: string;
+    fontsEpoch: number;
     wordColorMatchers: WordColorMatcher[];
     isChorus?: boolean;
     chorusAccentColor?: string;
     audioPower?: MotionValue<number>;
     renderStaticPassed?: boolean;
-}> = ({ entry, currentTime, accentColor, fontPx, fontStack, wordColorMatchers, isChorus, chorusAccentColor, audioPower, renderStaticPassed = false }) => {
+}> = ({ entry, currentTime, accentColor, fontPx, fontStack, fontsEpoch, wordColorMatchers, isChorus, chorusAccentColor, audioPower, renderStaticPassed = false }) => {
     const lineRenderEndTime = useMemo(() => getLineRenderEndTime(entry.line), [entry.line]);
     const tokens = useMemo(() => buildMonetDisplayTokens(entry.line), [entry.line]);
     const wordColorRanges = useMemo(
@@ -409,6 +491,7 @@ const MonetTimedTokenSpan: React.FC<{
                         baseColor={entry.tone.baseColor}
                         fontPx={fontPx}
                         fontSpec={fontSpec}
+                        fontsEpoch={fontsEpoch}
                         isChorus={isChorus}
                         audioPower={audioPower}
                     />
@@ -434,6 +517,8 @@ const MonetWordSweep: React.FC<{
     baseColor: string;
     fontPx: number;
     fontSpec: string;
+    /** Bumped when web fonts load; measured offsets are stale until then. */
+    fontsEpoch: number;
     isChorus?: boolean;
     audioPower?: MotionValue<number>;
 }> = ({
@@ -448,6 +533,7 @@ const MonetWordSweep: React.FC<{
     baseColor,
     fontPx,
     fontSpec,
+    fontsEpoch,
     isChorus,
     audioPower,
 }) => {
@@ -455,7 +541,8 @@ const MonetWordSweep: React.FC<{
         const canRenderGlow = lineStatus === 'active' || lineStatus === 'passed';
         const graphemeOffsets = useMemo(
             () => measureMonetGraphemeOffsets(text, fontPx, fontSpec),
-            [text, fontPx, fontSpec],
+            // eslint-disable-next-line react-hooks/exhaustive-deps -- fontsEpoch re-measures once the real face loads
+            [text, fontPx, fontSpec, fontsEpoch],
         );
 
         const wordStatus = useTransform(currentTime, latest => (
@@ -468,51 +555,17 @@ const MonetWordSweep: React.FC<{
             return (latest - startTime) / Math.max(0.001, endTime - startTime);
         });
 
-        const fillWidth = useTransform(currentTime, latest => {
-            const fullWidth = graphemeOffsets[graphemeOffsets.length - 1] ?? 0;
-            if (!isLineActive || latest <= startTime) return 0;
-            if (latest >= endTime) return fullWidth;
-
-            const timingCount = Math.min(graphemeTimings.length, graphemeOffsets.length - 1);
-            if (timingCount > 0) {
-                for (let index = 0; index < timingCount; index += 1) {
-                    const timing = graphemeTimings[index];
-                    const timingStart = Math.max(startTime, timing.startTime);
-                    const timingEnd = Math.max(timingStart, timing.endTime);
-                    const startWidth = graphemeOffsets[index] ?? 0;
-                    const endWidth = graphemeOffsets[index + 1] ?? startWidth;
-
-                    if (latest < timingStart) {
-                        return startWidth;
-                    }
-
-                    if (latest <= timingEnd) {
-                        const duration = Math.max(0.001, timingEnd - timingStart);
-                        const progress = (latest - timingStart) / duration;
-                        return startWidth + (endWidth - startWidth) * progress;
-                    }
-                }
-
-                return graphemeOffsets[timingCount] ?? fullWidth;
-            }
-
-            const progress = (latest - startTime) / Math.max(0.001, endTime - startTime);
-            if (progress <= 0) return 0;
-            if (progress >= 1) return fullWidth;
-            const graphemeCount = graphemeOffsets.length - 1;
-            const floatIndex = progress * graphemeCount;
-            const wholeIndex = Math.floor(floatIndex);
-            const fractional = floatIndex - wholeIndex;
-            const startWidth = graphemeOffsets[Math.min(wholeIndex, graphemeOffsets.length - 1)] ?? 0;
-            const endWidth = graphemeOffsets[Math.min(wholeIndex + 1, graphemeOffsets.length - 1)] ?? startWidth;
-            return startWidth + (endWidth - startWidth) * fractional;
-        });
+        const fillWidth = useTransform(currentTime, latest => (
+            isLineActive ? resolveMonetFillWidth(latest, startTime, endTime, graphemeOffsets, graphemeTimings) : 0
+        ));
 
         const maskImage = useTransform(fillWidth, latest => {
-            const edgeSoftness = Math.max(Math.min(fontPx * 0.45, 16), 6);
-            const solidEnd = Math.max(latest - edgeSoftness, 0);
-            const featherStart = Math.max(latest - edgeSoftness * 0.55, 0);
-            const featherEnd = Math.max(latest, 0);
+            const edgeSoftness = resolveMonetSweepEdgeSoftness(fontPx);
+            const fullWidth = graphemeOffsets[graphemeOffsets.length - 1] ?? 0;
+            const sweepEnd = resolveMonetSweepEnd(latest, fullWidth, edgeSoftness);
+            const solidEnd = Math.max(sweepEnd - edgeSoftness, 0);
+            const featherStart = Math.max(sweepEnd - edgeSoftness * 0.55, 0);
+            const featherEnd = Math.max(sweepEnd, 0);
             return `linear-gradient(90deg, rgba(0, 0, 0, 1) 0px, rgba(0, 0, 0, 1) ${solidEnd}px, rgba(0, 0, 0, 0.92) ${featherStart}px, rgba(0, 0, 0, 0) ${featherEnd}px, rgba(0, 0, 0, 0) 100%)`;
         });
 
@@ -528,22 +581,7 @@ const MonetWordSweep: React.FC<{
         const glowShadow = useTransform(currentTime, latest => {
             if (!canRenderGlow || latest <= startTime) return 'none';
 
-            const wordDuration = Math.max(0.001, endTime - startTime);
-            const glowRiseDuration = wordDuration * MONET_GLOW_RISE_DURATION_SCALE;
-            const glowPeakTime = startTime + glowRiseDuration;
-            const glowTailEndTime = Math.max(lineRenderEndTime, endTime + MONET_GLOW_PASS_TAIL_SECONDS);
-            let intensity: number;
-            if (latest <= glowPeakTime) {
-                const progress = Math.min(1, Math.max(0, (latest - startTime) / glowRiseDuration));
-                // 使用 Smoothstep (ease-in-out) 曲线，让发光开始和到达峰值时都平滑过渡
-                intensity = progress * progress * (3 - 2 * progress);
-            } else {
-                const decayDuration = Math.max(0.18, glowTailEndTime - glowPeakTime);
-                const decayProgress = Math.min(1, Math.max(0, (latest - glowPeakTime) / decayDuration));
-                const remaining = 1 - decayProgress;
-                // 使用 Smoothstep (ease-in-out)，让衰退初期缓慢（有“驻留”感），然后再平滑消失
-                intensity = remaining * remaining * (3 - 2 * remaining);
-            }
+            const intensity = resolveMonetGlow(latest, startTime, endTime, lineRenderEndTime);
 
             if (intensity <= 0) return 'none';
 
@@ -554,6 +592,13 @@ const MonetWordSweep: React.FC<{
             return `0 0 ${radiusOne}px ${glowColor}, 0 0 ${radiusTwo}px ${glowColor}`;
         }) as unknown as MotionValue<string>;
 
+        // Glyphs with deep descenders (g, j, p, y, and many CJK forms) sit below the line box
+        // whenever the font's em box is taller than `line-height`, which drives half-leading
+        // negative. `background-clip: text` paints no background outside the fill box and the mask
+        // clips at the overlay's border box, so the sweep used to stop mid-glyph — more visibly the
+        // larger the font. Grow both boxes, then pull the text back so its position is unchanged.
+        const sweepOverflowPx = Math.round(fontPx * 0.5);
+
         return (
             <span className="relative inline-block whitespace-pre-wrap break-words">
                 <motion.span style={{ color: resolvedBaseColor, textShadow: glowShadow }}>
@@ -562,8 +607,13 @@ const MonetWordSweep: React.FC<{
                 {isLineActive ? (
                     <motion.span
                         aria-hidden
-                        className="pointer-events-none absolute inset-0 block whitespace-pre-wrap break-words"
+                        className="pointer-events-none absolute left-0 right-0 block whitespace-pre-wrap break-words"
                         style={{
+                            top: -sweepOverflowPx,
+                            bottom: -sweepOverflowPx,
+                            paddingTop: sweepOverflowPx,
+                            paddingBottom: sweepOverflowPx,
+                            boxSizing: 'border-box',
                             WebkitMaskImage: maskImage,
                             maskImage,
                             WebkitMaskSize: '100% 100%',
@@ -576,6 +626,9 @@ const MonetWordSweep: React.FC<{
                         <motion.span
                             className="block whitespace-pre-wrap break-words"
                             style={{
+                                marginTop: -sweepOverflowPx,
+                                paddingTop: sweepOverflowPx,
+                                paddingBottom: sweepOverflowPx,
                                 color: 'transparent',
                                 WebkitTextFillColor: 'transparent',
                                 backgroundImage: fillGradient,
@@ -599,8 +652,10 @@ const MonetRailLine: React.FC<{
     translationFontPx: number;
     fontStack: string;
     translationFontStack: string;
+    translationFontWeight: number;
     glowBufferPx: number;
     vGlowBufferPx: number;
+    fontsEpoch: number;
     wordColorMatchers: WordColorMatcher[];
     showSubtitleTranslation: boolean;
     audioPower?: MotionValue<number>;
@@ -608,10 +663,22 @@ const MonetRailLine: React.FC<{
     canSeek?: boolean;
     disableEntryMotion?: boolean;
     renderStaticPassed?: boolean;
-}> = ({ entry, currentTime, theme, lyricFontPx, translationFontPx, fontStack, translationFontStack, glowBufferPx, vGlowBufferPx, wordColorMatchers, showSubtitleTranslation, audioPower, onLineSeek, canSeek = false, disableEntryMotion = false, renderStaticPassed = false }) => {
+}> = ({ entry, currentTime, theme, lyricFontPx, translationFontPx, fontStack, translationFontStack, translationFontWeight, glowBufferPx, vGlowBufferPx, fontsEpoch, wordColorMatchers, showSubtitleTranslation, audioPower, onLineSeek, canSeek = false, disableEntryMotion = false, renderStaticPassed = false }) => {
     const initialOffset = entry.offset >= 0 ? 34 : -34;
     const exitOffset = entry.status === 'passed' || entry.offset < 0 ? -38 : 38;
-    const textMask = getLineMask(entry.layout.isTextClipped, Math.max(lyricFontPx * 0.55, 12));
+    // The active lyric must never be truncated, so its box is sized by its own wrapped
+    // content instead of the pre-measured height, and it carries no truncation fade.
+    // Context lines keep the fixed two-line box that keeps the rail compact.
+    const isActiveLine = entry.status === 'active';
+    const textMask = isActiveLine
+        ? undefined
+        : getClippedTextMask(
+            entry.layout.isTextClipped,
+            vGlowBufferPx + entry.layout.textPaddingTopPx + entry.layout.textContentHeightPx,
+            Math.max(lyricFontPx * 0.55, 12),
+        );
+    const textEdgeMask = getEdgeFadeMask(entry.layout.isTextOverflowingWidth, Math.max(lyricFontPx * 0.9, 24));
+    const textMaskStyle = composeLineMasks(textMask, textEdgeMask);
     const translationMask = getLineMask(entry.layout.isTranslationClipped, Math.max(translationFontPx * 0.65, 10));
     const handleSeek = (event: React.MouseEvent | React.KeyboardEvent) => {
         if (!canSeek) {
@@ -621,12 +688,16 @@ const MonetRailLine: React.FC<{
         event.stopPropagation();
         onLineSeek?.(entry.line);
     };
+    const handleClickSeek = (event: React.MouseEvent<HTMLDivElement>) => {
+        handleSeek(event);
+        event.currentTarget.blur();
+    };
 
     return (
         <motion.div
             role={canSeek ? 'button' : undefined}
             tabIndex={canSeek ? 0 : undefined}
-            onClick={canSeek ? handleSeek : undefined}
+            onClick={canSeek ? handleClickSeek : undefined}
             onKeyDown={canSeek ? (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
@@ -678,7 +749,7 @@ const MonetRailLine: React.FC<{
                 />
             )}
             <div
-                className="min-w-0 overflow-hidden"
+                className="min-w-0 overflow-hidden pointer-events-none"
                 style={{
                     marginLeft: `-${glowBufferPx}px`,
                     marginRight: `-${glowBufferPx}px`,
@@ -688,19 +759,16 @@ const MonetRailLine: React.FC<{
                     marginBottom: `-${vGlowBufferPx}px`,
                     paddingTop: `${entry.layout.textPaddingTopPx + vGlowBufferPx}px`,
                     paddingBottom: `${entry.layout.textPaddingBottomPx + vGlowBufferPx}px`,
-                    height: `${entry.layout.textHeightPx + vGlowBufferPx * 2}px`,
+                    height: isActiveLine
+                        ? undefined
+                        : `${entry.layout.textHeightPx + vGlowBufferPx * 2}px`,
                     boxSizing: 'border-box',
                     fontFamily: fontStack,
                     fontSize: lyricFontPx,
                     fontWeight: entry.tone.fontWeight,
                     lineHeight: `${entry.layout.lineHeightPx}px`,
                     letterSpacing: 0,
-                    WebkitMaskImage: textMask,
-                    maskImage: textMask,
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskSize: '100% 100%',
-                    maskSize: '100% 100%',
+                    ...textMaskStyle,
                     textShadow: entry.status === 'active'
                         ? `0 14px 34px ${colorWithAlpha(theme.backgroundColor, 0.22)}`
                         : 'none',
@@ -712,6 +780,7 @@ const MonetRailLine: React.FC<{
                     accentColor={colorWithAlpha(theme.primaryColor, 0.98)}
                     fontPx={lyricFontPx}
                     fontStack={fontStack}
+                    fontsEpoch={fontsEpoch}
                     wordColorMatchers={wordColorMatchers}
                     isChorus={entry.line.isChorus}
                     chorusAccentColor={theme.accentColor}
@@ -737,7 +806,7 @@ const MonetRailLine: React.FC<{
                         color: colorWithAlpha(theme.primaryColor, 0.68),
                         fontFamily: translationFontStack,
                         fontSize: translationFontPx,
-                        fontWeight: 500,
+                        fontWeight: translationFontWeight,
                         lineHeight: `${entry.layout.translationLineHeightPx}px`,
                         letterSpacing: 0,
                         WebkitMaskImage: translationMask,
@@ -766,6 +835,7 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
     translationFontPx,
     fontStack,
     translationFontStack = fontStack,
+    subtitleTheme,
     keywordColoringEnabled,
     emptyText,
     showSubtitleTranslation = true,
@@ -773,6 +843,7 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
     audioBands,
     onLyricLineSeek,
     seekDisabled = false,
+    layoutScale = 1,
 }) => {
     const railRef = useRef<HTMLDivElement | null>(null);
     const layoutCacheRef = useRef<MonetLayoutCache>(new Map());
@@ -784,9 +855,19 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
     const touchDirectionRef = useRef(0);
     const [manualScrollAnchorIndex, setManualScrollAnchorIndex] = useState<number | null>(null);
     const railSize = useMonetRailSize(railRef);
+    const fontsEpoch = useFontsEpoch();
+    const handledFontsEpochRef = useRef(0);
     const glowBufferPx = Math.round(lyricFontPx * 1.2);
     const vGlowBufferPx = Math.round(lyricFontPx * 1.2);
+    // Grows with the same factor as the font, so the column-to-font ratio — and the wrapping — holds.
+    const railMaxWidthPx = Math.round(MONET_RAIL_BASE_MAX_WIDTH_PX * layoutScale);
+    const railMaxHeightPx = Math.round(Math.max(
+        MONET_RAIL_BASE_MAX_HEIGHT_PX * layoutScale,
+        lyricFontPx * 1.18 * MONET_RAIL_MIN_ROWS,
+    ));
     const canSeek = Boolean(onLyricLineSeek) && !seekDisabled;
+    const lyricFontWeight = resolveThemeFontWeight(theme, 600);
+    const translationFontWeight = resolveThemeFontWeight(subtitleTheme ?? theme, 500);
 
     const visibleEntries = useMemo(
         () => manualScrollAnchorIndex === null
@@ -797,20 +878,33 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
     const isManualScrolling = manualScrollAnchorIndex !== null;
 
     const positionedEntries = useMemo(
-        () => buildPositionedEntries(
-            visibleEntries,
-            railSize,
-            theme,
-            lyricFontPx,
-            inactiveFontPx,
-            translationFontPx,
-            fontStack,
-            translationFontStack,
-            glowBufferPx,
-            showSubtitleTranslation,
-            layoutCacheRef.current,
-        ),
-        [visibleEntries, railSize, theme, lyricFontPx, inactiveFontPx, translationFontPx, fontStack, translationFontStack, glowBufferPx, showSubtitleTranslation],
+        () => {
+            // A line measured against a fallback face wraps differently from what is painted, which
+            // under-reserves its height and drops the translation onto the next lyric. Invalidate
+            // here rather than in an effect, so the recompute below already sees fresh metrics.
+            if (handledFontsEpochRef.current !== fontsEpoch) {
+                handledFontsEpochRef.current = fontsEpoch;
+                clearMonetMeasurementCaches();
+                layoutCacheRef.current.clear();
+            }
+
+            return buildPositionedEntries(
+                visibleEntries,
+                railSize,
+                theme,
+                lyricFontPx,
+                inactiveFontPx,
+                translationFontPx,
+                fontStack,
+                translationFontStack,
+                lyricFontWeight,
+                translationFontWeight,
+                glowBufferPx,
+                showSubtitleTranslation,
+                layoutCacheRef.current,
+            );
+        },
+        [visibleEntries, railSize, theme, lyricFontPx, inactiveFontPx, translationFontPx, fontStack, translationFontStack, lyricFontWeight, translationFontWeight, glowBufferPx, showSubtitleTranslation, fontsEpoch],
     );
     const wordColorMatchers = useMemo(
         () => prepareWordColorMatchers(theme.wordColors, keywordColoringEnabled),
@@ -965,8 +1059,10 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
     return (
         <div
             ref={railRef}
-            className="relative h-[clamp(260px,42vh,400px)] max-w-[720px] select-none overflow-hidden"
+            className="relative select-none overflow-hidden"
             style={{
+                height: `clamp(280px, 52vh, ${railMaxHeightPx}px)`,
+                maxWidth: `${railMaxWidthPx}px`,
                 marginLeft: `-${glowBufferPx}px`,
                 marginRight: `-${glowBufferPx}px`,
                 paddingLeft: `${glowBufferPx}px`,
@@ -990,8 +1086,10 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
                             translationFontPx={translationFontPx}
                             fontStack={fontStack}
                             translationFontStack={translationFontStack}
+                            translationFontWeight={translationFontWeight}
                             glowBufferPx={glowBufferPx}
                             vGlowBufferPx={vGlowBufferPx}
+                            fontsEpoch={fontsEpoch}
                             wordColorMatchers={wordColorMatchers}
                             showSubtitleTranslation={showSubtitleTranslation}
                             audioPower={audioPower}
@@ -1004,10 +1102,11 @@ const MonetLyricsRail: React.FC<MonetLyricsRailProps> = ({
                 </AnimatePresence>
             ) : emptyText ? (
                 <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 font-semibold"
+                    className="absolute left-0 top-1/2 -translate-y-1/2"
                     style={{
                         color: theme.primaryColor,
                         fontSize: 'clamp(1.8rem, 4.2vw, 3.2rem)',
+                        fontWeight: lyricFontWeight,
                         letterSpacing: 0,
                         opacity: 0.72,
                     }}

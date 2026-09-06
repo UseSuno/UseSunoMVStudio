@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useMotionValueEvent, useDragControls, useMotionValue } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
+import { useElementWidth } from '../../../hooks/useElementWidth';
 import { DEFAULT_MONET_TUNING } from '../../../types';
 import { colorWithAlpha } from '../colorMix';
 import { type VisualizerSharedProps } from '../definition';
@@ -11,10 +12,19 @@ import { useVisualizerRuntime } from '../runtime';
 import VisualizerShell from '../VisualizerShell';
 import { getLineRenderEndTime } from '../../../utils/lyrics/renderHints';
 import { resolveThemeFontStack, resolveThemeTranslationFontStack } from '../../../utils/fontStacks';
+import { resolveLyricAlternateText, resolveSubtitleContentMode } from '../../../utils/lyrics/alternateText';
 import AudioOverlay from './AudioOverlay';
 import MonetFloatingDecor from './MonetFloatingDecor';
 import MonetLyricsRail from './MonetLyricsRail';
-import { buildMonetVisibleLineEntries, resolveClampFontPx } from './monetLyricsModel';
+import MonetPortraitImage from './MonetPortraitImage';
+import {
+    MONET_PORTRAIT_BASE_MAX_PX,
+    MONET_PORTRAIT_INNER_BASE_MAX_PX,
+    MONET_ROW_BASE_MAX_WIDTH_PX,
+    buildMonetVisibleLineEntries,
+    resolveClampFontPx,
+    resolveMonetLargeScreenScale,
+} from './monetLyricsModel';
 
 // src/components/visualizer/monet/VisualizerMonet.tsx
 // Monet keeps the poster layout here while its lyric rail owns measured scrolling and line states.
@@ -30,10 +40,12 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
         lines,
         theme,
         subtitleTheme,
+        subtitleFontScale = 1,
         audioPower,
         audioBands,
         showText = true,
         showSubtitleTranslation = true,
+        subtitleContentMode,
         songTitle,
         songArtist,
         songAlbum,
@@ -47,6 +59,16 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
         seed,
     } = props;
     const { t } = useTranslation();
+    const resolvedSubtitleContentMode = resolveSubtitleContentMode(subtitleContentMode, showSubtitleTranslation);
+    const displayLines = useMemo(() => {
+        if (resolvedSubtitleContentMode !== 'romanization') {
+            return lines;
+        }
+        return lines.map(line => ({
+            ...line,
+            translation: resolveLyricAlternateText(line, resolvedSubtitleContentMode) ?? undefined,
+        }));
+    }, [lines, resolvedSubtitleContentMode]);
 
     const handleSetMonetTuning = onMonetTuningChange;
 
@@ -62,6 +84,7 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
 
     const dragControls = useDragControls();
     const isDraggingRef = useRef(false);
+    const shellRef = useRef<HTMLDivElement | null>(null);
 
     const [introKey, setIntroKey] = useState(0);
     const lastTimeRef = useRef(0);
@@ -89,12 +112,12 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
     } = useVisualizerRuntime({
         currentTime,
         currentLineIndex,
-        lines,
+        lines: displayLines,
         getLineEndTime: getLineRenderEndTime,
     });
 
     const visibleLineEntries = useMemo(() => buildMonetVisibleLineEntries({
-        lines,
+        lines: displayLines,
         currentLineIndex,
         activeLine,
         recentCompletedLine,
@@ -106,24 +129,45 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
         activeLine,
         currentLineIndex,
         currentTimeValue,
-        lines,
+        displayLines,
         recentCompletedLine,
         upcomingLine,
     ]);
 
+    const shellWidth = useElementWidth(shellRef);
     const lyricFontStack = useMemo(() => resolveThemeFontStack(theme), [theme]);
     const translationFontStack = useMemo(
         () => resolveThemeTranslationFontStack(subtitleTheme ?? theme),
         [subtitleTheme, theme],
     );
     const fontScale = monetTuning.fontScale;
+    // Scales the whole composition up on very wide displays; 1 below 2xl, so nothing else changes.
+    // Driven by the observed shell width so a resize re-lays the scene out instead of keeping the
+    // width read at mount, and so an embedded preview scales by its own box, not by the display.
+    const largeScreenScale = resolveMonetLargeScreenScale(shellWidth);
     const lyricFontPx = resolveClampFontPx(
         1.34,
         2.75,
         2.28,
-    ) * fontScale;
-    const inactiveFontPx = resolveClampFontPx(1.08, 2, 1.48) * fontScale;
-    const translationFontPx = resolveClampFontPx(0.94, 1.28, 1.14) * fontScale;
+    ) * fontScale * largeScreenScale;
+    const inactiveFontPx = resolveClampFontPx(1.08, 2, 1.48) * fontScale * largeScreenScale;
+    const translationFontPx = resolveClampFontPx(0.94, 1.28, 1.14) * fontScale * subtitleFontScale * largeScreenScale;
+    const rowMaxWidthPx = Math.round(MONET_ROW_BASE_MAX_WIDTH_PX * largeScreenScale);
+    const portraitMaxPx = Math.round(MONET_PORTRAIT_BASE_MAX_PX * largeScreenScale);
+    const portraitInnerMaxPx = Math.round(MONET_PORTRAIT_INNER_BASE_MAX_PX * largeScreenScale);
+    const titleMaxRem = (2.8 * largeScreenScale).toFixed(3);
+    const artistMaxRem = (1.8 * largeScreenScale).toFixed(3);
+
+    // Width the poster header (artist / title / album) must leave free on its right.
+    // A square portrait is drawn 135.135% of its column and pulled left by the extra 35.135%,
+    // and a saved drag offset moves it further left, so both bleed over the text column; without
+    // this reserve a long title runs under the cover. The 3rem subtracted back is the part of the
+    // bleed that only eats the two columns' own padding, plus a small gutter before the cover.
+    const portraitBleedCss = monetTuning.portraitStyle === 'square'
+        ? `0.35135 * clamp(210px, 26vw, ${portraitInnerMaxPx}px) - 3rem`
+        : '0px';
+    const portraitShiftPx = Math.abs(Math.min(0, initialOffsetX));
+    const headerMaxWidth = `max(12rem, calc(100% - max(0px, calc(${portraitBleedCss})) - ${portraitShiftPx}px))`;
 
     /* eslint-disable-next-line no-warning-comments -- @AI: KEEP THIS EXACTLY AS IS */
     // @note Version Control: Project Folia version 0.5.27-a16525c
@@ -153,18 +197,25 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                 </motion.div>
             )}
 
-            <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden">
-                <div className="flex h-full w-full max-w-[1520px] flex-row items-center overflow-hidden">
+            <div ref={shellRef} className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden">
+                <div
+                    className="flex h-full w-full flex-row items-center overflow-hidden"
+                    style={{ maxWidth: `${rowMaxWidthPx}px` }}
+                >
                     {showText && (
-                        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center px-5 py-5 sm:px-8 sm:py-6 lg:px-14 lg:py-8">
-                            <div className="mb-3 space-y-1.5">
+                        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center px-5 py-5 sm:px-8 sm:py-6 lg:px-14 lg:py-8 2xl:px-20">
+                            <div className="mb-3 space-y-1.5" style={{ maxWidth: headerMaxWidth }}>
                                 <motion.div
                                     key={`artist-${introKey}`}
                                     initial={{ opacity: 0, x: -30, y: -10 }}
                                     animate={{ opacity: 1, x: 0, y: 0 }}
                                     transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1], delay: 0.15 }}
-                                    className="text-[clamp(1rem,1.8vw,1.8rem)] italic"
-                                    style={{ color: colorWithAlpha(theme.primaryColor, 0.96), letterSpacing: 0 }}
+                                    className="truncate italic"
+                                    style={{
+                                        color: colorWithAlpha(theme.primaryColor, 0.96),
+                                        fontSize: `clamp(1rem, 1.8vw, ${artistMaxRem}rem)`,
+                                        letterSpacing: 0,
+                                    }}
                                 >
                                     {primaryMetaLabel}
                                 </motion.div>
@@ -186,21 +237,23 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                                 initial={{ opacity: 0, x: -40 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 1.3, ease: [0.25, 1, 0.5, 1], delay: 0.3 }}
+                                style={{ maxWidth: headerMaxWidth }}
                             >
                                 <div className="mb-6 space-y-1">
                                     <div
-                                        className="font-semibold leading-[1.06]"
+                                        className="line-clamp-2 font-semibold leading-[1.06]"
                                         style={{
                                             color: theme.primaryColor,
-                                            fontSize: 'clamp(1.45rem, 3.3vw, 2.8rem)',
+                                            fontSize: `clamp(1.45rem, 3.3vw, ${titleMaxRem}rem)`,
                                             letterSpacing: 0,
+                                            overflowWrap: 'anywhere',
                                             textShadow: `0 14px 36px ${colorWithAlpha(theme.backgroundColor, 0.28)}`,
                                         }}
                                     >
                                         {songTitle || 'Monet'}
                                     </div>
                                     <div
-                                        className="text-sm uppercase"
+                                        className="truncate text-sm uppercase"
                                         style={{ color: colorWithAlpha(theme.secondaryColor, 0.84), letterSpacing: 0 }}
                                     >
                                         {secondaryMetaLabel}
@@ -216,7 +269,7 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                             >
                                 <MonetLyricsRail
                                     entries={visibleLineEntries}
-                                    lines={lines}
+                                    lines={displayLines}
                                     currentLineIndex={currentLineIndex}
                                     currentTime={currentTime}
                                     theme={theme}
@@ -225,13 +278,15 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                                     translationFontPx={translationFontPx}
                                     fontStack={lyricFontStack}
                                     translationFontStack={translationFontStack}
+                                    subtitleTheme={subtitleTheme}
                                     keywordColoringEnabled={monetTuning.keywordColoringEnabled}
                                     emptyText=""
-                                    showSubtitleTranslation={showSubtitleTranslation}
+                                    showSubtitleTranslation={resolvedSubtitleContentMode !== 'none'}
                                     audioPower={audioPower}
                                     audioBands={audioBands}
                                     onLyricLineSeek={onLyricLineSeek}
                                     seekDisabled={isPreviewMode}
+                                    layoutScale={largeScreenScale}
                                 />
                             </motion.div>
 
@@ -261,15 +316,23 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
 
                     {showText ? (
                         <motion.div
-                            key={`portrait-${introKey}`}
+                            // Deliberately not keyed on `introKey` like the rest of the poster: a
+                            // remount throws the cover away and slides an empty frame back in,
+                            // which is the flash at a track change. The frame stays put and
+                            // MonetPortraitImage hands the cover over inside it instead, so the
+                            // handover is continuous whether the change came from a skip or from
+                            // the settle of an AutoMix/Crossfade blend.
                             initial={{ opacity: 0, x: 50, scale: 0.95, rotate: 1 }}
                             animate={{ opacity: 1, x: 0, scale: 1, rotate: 0 }}
                             transition={{ duration: 1.6, ease: [0.25, 1, 0.5, 1], delay: 0.25 }}
                             className="hidden min-w-0 items-center justify-center overflow-visible px-3 pr-5 sm:pr-8 md:flex lg:justify-end lg:pr-10 xl:pr-12 select-none"
-                            style={{ flex: '0 0 clamp(220px, 28vw, 430px)' }}
+                            style={{ flex: `0 0 clamp(220px, 28vw, ${portraitMaxPx}px)` }}
                         >
                             {/* Bounding box wrapper that stays in the default position */}
-                            <div className="relative w-full max-w-[clamp(210px,26vw,380px)]">
+                            <div
+                                className="relative w-full"
+                                style={{ maxWidth: `clamp(210px, 26vw, ${portraitInnerMaxPx}px)` }}
+                            >
                                 
                                 {/* Dashed movable region border */}
                                 {isEditingPosition && (
@@ -418,14 +481,7 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                                                     backgroundColor: colorWithAlpha(theme.primaryColor, 0.08),
                                                 }}
                                             >
-                                                <img
-                                                    src={portraitUrl || ''}
-                                                    decoding="async"
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                    style={{ opacity: portraitUrl ? 1 : 0, transition: 'opacity 1s ease' }}
-                                                    draggable={false}
-                                                />
+                                                <MonetPortraitImage src={portraitUrl} />
                                             </div>
                                         ) : (
                                             <div
@@ -442,14 +498,7 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                                                         backgroundColor: colorWithAlpha(theme.primaryColor, 0.08),
                                                     }}
                                                 >
-                                                    <img
-                                                        src={portraitUrl || ''}
-                                                        decoding="async"
-                                                        alt=""
-                                                        className="w-full h-full object-cover"
-                                                        style={{ opacity: portraitUrl ? 1 : 0, transition: 'opacity 1s ease' }}
-                                                        draggable={false}
-                                                    />
+                                                    <MonetPortraitImage src={portraitUrl} />
                                                 </div>
                                             </div>
                                         )}
@@ -461,7 +510,7 @@ const VisualizerMonet: React.FC<VisualizerMonetProps> = (props) => {
                 </div>
             </div>
 
-            {showText && (
+            {showText && monetTuning.showAudioVisualization && (
                 <motion.div
                     key={`audio-${introKey}`}
                     initial={{ opacity: 0, y: 15 }}

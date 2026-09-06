@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useMotionValueEvent, type MotionValue } from '
 import { useTranslation } from 'react-i18next';
 import { layoutWithLines, prepareWithSegments, type PrepareOptions } from '@chenglou/pretext';
 import { DEFAULT_CAPPELLA_TUNING, type AudioBands, type CappellaEmojiImage, type CappellaTuning, type Line, type Theme } from '../../../types';
-import { resolveThemeFontStack } from '../../../utils/fontStacks';
+import { resolveThemeFontStack, resolveThemeFontWeight } from '../../../utils/fontStacks';
 import { buildLineGraphemeTimeline, buildWordGraphemeTimings, splitLyricGraphemes } from '../../../utils/lyrics/graphemeTiming';
 import { getLineRenderEndTime, getLineRenderHints } from '../../../utils/lyrics/renderHints';
 import { mixColors } from '../colorMix';
@@ -78,6 +78,7 @@ const CAPPELLA_LAYOUT_CACHE_LIMIT = 32;
 // 让横向扩展先于字符出现启动，避免临界换行时字符短暂掉到下一行。
 const CAPPELLA_WIDTH_LOOKAHEAD_SECONDS = 0.2;
 const CAPPELLA_BUBBLE_TEXT_OPTIONS = { whiteSpace: 'pre-wrap' } satisfies PrepareOptions;
+const CAPPELLA_BUBBLE_FONT_WEIGHT = 400;
 
 interface BubbleSize {
     width: number;
@@ -362,29 +363,34 @@ const buildCappellaMessages = (
         const isShortLine = countCompactChars(line.fullText) <= SHORT_LINE_CHAR_LIMIT;
         const agentSender = agentSenderResolver?.resolve(line) ?? null;
         const shouldForceRight = !agentSender && (lineIndex + 1) % config.sequencing.forceRightEveryLines === 0;
-        const shouldCarrySender = !agentSender
+        const shouldCarrySender = Boolean(!agentSender
             && isShortLine
             && lastLyricSender
-            && seededUnit('carry', line.startTime, lineIndex) <= config.sequencing.shortLineCarryChance;
+            && seededUnit('carry', line.startTime, lineIndex) <= config.sequencing.shortLineCarryChance);
         const baseSide = config.sequencing.sideSequence[sideSequenceCursor % config.sequencing.sideSequence.length];
         const shouldFlipSide = !shouldForceRight
             && seededUnit('flip', line.startTime, lineIndex) < config.sequencing.sideFlipChance;
         const resolvedSide = shouldFlipSide
             ? (baseSide === 'left' ? 'right' : 'left')
             : baseSide;
-        const sender = agentSender ?? (shouldForceRight
-            ? {
+        let sender: CappellaMessageSender;
+        if (agentSender) {
+            sender = agentSender;
+        } else if (shouldForceRight) {
+            sender = {
                 side: 'right' as const,
                 avatarIndex: RIGHT_AVATAR_INDEX,
-            }
-            : shouldCarrySender
-                ? lastLyricSender
-                : {
-                    side: resolvedSide,
-                    avatarIndex: resolvedSide === 'left'
-                        ? nextLeftAvatarCursor
-                        : RIGHT_AVATAR_INDEX,
-                });
+            };
+        } else if (shouldCarrySender && lastLyricSender) {
+            sender = lastLyricSender;
+        } else {
+            sender = {
+                side: resolvedSide,
+                avatarIndex: resolvedSide === 'left'
+                    ? nextLeftAvatarCursor
+                    : RIGHT_AVATAR_INDEX,
+            };
+        }
 
         const isInterlude = line.fullText === INTERLUDE_TEXT;
         const emoImage = isInterlude && showEmoMessages
@@ -698,17 +704,44 @@ const getAvatarPosition = (avatarIndex: number) => {
 const getEstimatedMessageHeight = (
     message: CappellaMessage,
     isActive: boolean,
-    motionConfig: CappellaIntensityConfig['motion']
+    motionConfig: CappellaIntensityConfig['motion'],
+    theme: Theme,
+    baseFontSize: number,
+    maxTextWidth: number
 ): number => {
-    if (message.kind === 'title') {
-        return 40;
-    }
     if (message.kind === 'emo') {
         const imageSize = isActive ? motionConfig.emoActiveSize : motionConfig.emoInactiveSize;
-        return imageSize + 48 + 12; // 图像高度 + pt-12 (48px) padding + gap-3 (12px) 间距
+        const scaleOverflow = isActive && motionConfig.activeScale > 1
+            ? Math.ceil(imageSize * (motionConfig.activeScale - 1))
+            : 0;
+        return imageSize + scaleOverflow + 48 + 12; // 图像高度 + 缩放上溢 + pt-12 (48px) padding + gap-3 (12px) 间距
     }
-    const baseHeight = isActive ? motionConfig.activeMinHeight + 16 : motionConfig.inactiveMinHeight + 10;
-    return baseHeight + 12; // 估算的气泡高度 + gap-3 (12px) 间距
+
+    const fontSize = message.kind === 'title'
+        ? baseFontSize
+        : baseFontSize * (isActive ? motionConfig.activeFontMultiplier : motionConfig.inactiveFontMultiplier);
+    const paddingX = isActive ? motionConfig.activePaddingX : motionConfig.inactivePaddingX;
+    const paddingY = isActive ? motionConfig.activePaddingY : motionConfig.inactivePaddingY;
+    const lineHeightPx = fontSize * 1.45;
+    const measuredHeight = measureBubbleText({
+        text: message.kind === 'title' ? message.text : message.line.fullText,
+        theme,
+        fontSize,
+        lineHeightPx,
+        maxTextWidth,
+        paddingX,
+        paddingY,
+    }).height;
+    const minHeight = Math.max(
+        isActive ? motionConfig.activeMinHeight : motionConfig.inactiveMinHeight,
+        lineHeightPx + paddingY * 2
+    );
+    const renderedHeight = Math.max(measuredHeight, minHeight);
+    const scaleOverflow = isActive && motionConfig.activeScale > 1
+        ? Math.ceil(renderedHeight * (motionConfig.activeScale - 1))
+        : 0;
+
+    return renderedHeight + scaleOverflow + 12; // 气泡实际高度 + 缩放上溢 + gap-3 (12px) 间距
 };
 
 /**
@@ -720,7 +753,10 @@ const getVisibleMessages = (
     viewportHeight: number,
     currentLineIndex: number,
     currentTime: number,
-    motionConfig: CappellaIntensityConfig['motion']
+    motionConfig: CappellaIntensityConfig['motion'],
+    theme: Theme,
+    baseFontSize: number,
+    maxTextWidth: number
 ) => {
     const visible = messages.filter(message => {
         if (message.kind === 'title') {
@@ -744,7 +780,14 @@ const getVisibleMessages = (
         const message = visible[i];
         const timedData = isTimedMessage(message) ? message : null;
         const isActive = timedData ? getTimedMessageState(timedData, currentTime, currentLineIndex).isActive : false;
-        const estHeight = getEstimatedMessageHeight(message, isActive, motionConfig);
+        const estHeight = getEstimatedMessageHeight(
+            message,
+            isActive,
+            motionConfig,
+            theme,
+            baseFontSize,
+            maxTextWidth
+        );
 
         if (accumulatedHeight + estHeight > usableHeight && result.length >= 2) {
             // 保留至少 2 条消息做为上下文，其余超出高度的不再包括
@@ -838,7 +881,7 @@ const measureBubbleText = ({
     const safeText = text || ' ';
     const prepared = prepareWithSegments(
         safeText,
-        `640 ${fontSize}px ${resolveThemeFontStack(theme)}`,
+        `${resolveThemeFontWeight(theme, CAPPELLA_BUBBLE_FONT_WEIGHT)} ${fontSize}px ${resolveThemeFontStack(theme)}`,
         CAPPELLA_BUBBLE_TEXT_OPTIONS
     );
     const layout = layoutWithLines(prepared, Math.max(1, maxTextWidth), Math.round(lineHeightPx));
@@ -876,6 +919,8 @@ const getBubbleMetricsCacheKey = ({
     line.endTime,
     line.words.length,
     theme.name,
+    resolveThemeFontStack(theme),
+    resolveThemeFontWeight(theme, CAPPELLA_BUBBLE_FONT_WEIGHT),
     fontSize.toFixed(3),
     lineHeightPx.toFixed(3),
     maxTextWidth,
@@ -1089,13 +1134,12 @@ const ActiveCappellaText: React.FC<{
     const visibleFadeDurations = revealPlan.fadeDurationsMs.slice(0, Math.max(0, visibleCharacterCount));
 
     return (
-        <span className="inline-flex flex-wrap items-baseline">
+        // 保持普通 inline 文本流，使 DOM 的字形塑形和换行规则与 pretext 的连续文本量度一致。
+        <span>
             {visibleCharacters.map((character, index) => (
                 <span
                     key={`${index}-${character}`}
-                    className="inline-block"
                     style={{
-                        whiteSpace: character.trim() ? 'pre' : 'pre-wrap',
                         animationName: 'cappella-char-fade',
                         animationDuration: `${visibleFadeDurations[index] ?? DEFAULT_CHAR_FADE_MS}ms`,
                         animationTimingFunction: 'ease-out',
@@ -1432,8 +1476,9 @@ const CappellaMessageRow = React.forwardRef<HTMLDivElement, CappellaMessageRowPr
                                 border: `1px solid ${bubbleColors.borderColor}`,
                                 color: bubbleColors.textColor,
                                 fontSize: bubbleFontSize,
+                                fontWeight: resolveThemeFontWeight(theme, CAPPELLA_BUBBLE_FONT_WEIGHT),
                                 lineHeight: 1.45,
-                                maxWidth: maxTextWidth + bubblePaddingX * 2,
+                                maxWidth: maxTextWidth + bubblePaddingX * 2 + 2,
                                 minHeight: Math.max(
                                     isActiveMessage ? motionConfig.activeMinHeight : motionConfig.inactiveMinHeight,
                                     bubbleFontSize * 1.45 + bubblePaddingY * 2
@@ -1485,10 +1530,13 @@ const VisualizerCappella: React.FC<VisualizerCappellaProps> = (props) => {
         coverUrl,
         seed,
         lyricsFontScale = 1,
+        subtitleFontScale = 1,
         subtitleOverlayOpacity,
+        subtitleOverlayBackground,
         isPlayerChromeHidden = false,
         hideTranslationSubtitle = false,
         showSubtitleTranslation = true,
+        subtitleContentMode,
         cappellaTuning = DEFAULT_CAPPELLA_TUNING,
         cappellaCustomEmojiImages = [],
         cappellaCustomAvatarImages = [],
@@ -1533,6 +1581,10 @@ const VisualizerCappella: React.FC<VisualizerCappellaProps> = (props) => {
         () => buildCappellaMessages(lines, titleText, intensityConfig, resolvedCappellaTuning, activeEmoImages, isPreviewMode),
         [activeEmoImages, intensityConfig, isPreviewMode, lines, resolvedCappellaTuning, titleText]
     );
+    const baseFontSize = Math.max(15, Math.min(26, 18 * lyricsFontScale));
+    const maxPanelWidth = Math.min(Math.max(viewportSize.width - 32, 1), 896);
+    const bubbleGroupRatio = viewportSize.width >= 640 ? 0.68 : 0.78;
+    const maxTextWidth = Math.max(96, Math.floor(maxPanelWidth * bubbleGroupRatio - 56));
     const visibleMessages = useMemo(
         () => getVisibleMessages(
             messages,
@@ -1540,14 +1592,23 @@ const VisualizerCappella: React.FC<VisualizerCappellaProps> = (props) => {
             viewportSize.height,
             currentLineIndex,
             currentTime.get(),
-            intensityConfig.motion
+            intensityConfig.motion,
+            theme,
+            baseFontSize,
+            maxTextWidth
         ),
-        [currentLineIndex, currentTime, intensityConfig.motion, messages, viewportSize.height, visibleLineIndex]
+        [
+            baseFontSize,
+            currentLineIndex,
+            currentTime,
+            intensityConfig.motion,
+            maxTextWidth,
+            messages,
+            theme,
+            viewportSize.height,
+            visibleLineIndex,
+        ]
     );
-    const baseFontSize = Math.max(15, Math.min(26, 18 * lyricsFontScale));
-    const maxPanelWidth = Math.min(Math.max(viewportSize.width - 32, 1), 896);
-    const bubbleGroupRatio = viewportSize.width >= 640 ? 0.68 : 0.78;
-    const maxTextWidth = Math.max(96, Math.floor(maxPanelWidth * bubbleGroupRatio - 56));
     const { activeLine, recentCompletedLine, upcomingLine, nextLines } = useVisualizerRuntime({
         currentTime,
         currentLineIndex,
@@ -1658,9 +1719,12 @@ const VisualizerCappella: React.FC<VisualizerCappellaProps> = (props) => {
                 translationFontSize={`${Math.max(14, 16 * lyricsFontScale)}px`}
                 upcomingFontSize={`${Math.max(12, 14 * lyricsFontScale)}px`}
                 subtitleOverlayOpacity={subtitleOverlayOpacity}
+                subtitleOverlayBackground={subtitleOverlayBackground}
+                subtitleFontScale={subtitleFontScale}
                 isPlayerChromeHidden={isPlayerChromeHidden}
                 hideTranslationSubtitle={hideTranslationSubtitle}
                 showSubtitleTranslation={showSubtitleTranslation}
+                subtitleContentMode={subtitleContentMode}
             />
         </VisualizerShell>
     );

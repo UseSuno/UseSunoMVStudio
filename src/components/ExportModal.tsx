@@ -5,9 +5,10 @@ import { dimensions, type Project } from '../domain/model';
 import { downloadBlob } from '../persistence/project';
 import { Modal } from './Modal';
 import { VideoResult } from './VideoResult';
+import { supportsFastExport } from '../folia/registry';
 // Encoding loads only when the export surface is opened.
 export function ExportModal({ project, buffer, peaks, close, clock }: { project: Project; buffer: AudioBuffer | null; peaks: number[]; clock: PlaybackClock; close: () => void }) {
-  const fastFolia = ['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-curtain'].includes(project.template);
+  const fastFolia = supportsFastExport(project.template);
   const [height, setHeight] = useState(720), [format, setFormat] = useState<'mp4' | 'webm'>('mp4'), [mode, setMode] = useState<'offline' | 'realtime'>(!project.template.startsWith('folia-') || fastFolia ? 'offline' : 'realtime');
   const [range, setRange] = useState({ start: 0, end: project.duration });
   const [support, setSupport] = useState<{ mp4: boolean; webm: boolean } | null>(null), [error, setError] = useState('');

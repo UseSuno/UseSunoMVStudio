@@ -7,7 +7,7 @@ import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext';
 import { Line, Theme, AudioBands, type TiltColorScheme, type TiltTuning, DEFAULT_TILT_TUNING } from '../../../types';
 import { buildWordGraphemeTimings } from '../../../utils/lyrics/graphemeTiming';
 import { getLineRenderEndTime } from '../../../utils/lyrics/renderHints';
-import { resolveThemeFontStack } from '../../../utils/fontStacks';
+import { resolveThemeFontStack, resolveThemeFontWeight } from '../../../utils/fontStacks';
 import { SentenceLayout } from '../../../utils/lyrics/sentenceLayout';
 import { type VisualizerSharedProps } from '../definition';
 import { useVisualizerRuntime } from '../runtime';
@@ -215,8 +215,8 @@ const buildTiltLayout = (fullText: string, lineSeed: number, tuning: TiltTuning,
     const measureMaxPx = Math.max(viewportWidth * 0.06875, 5.625 * REM_PX * fontScale);
     const normalBasePx = measureMaxPx;
     const tiltBasePx = measureMaxPx;
-    const normalFontSpec = `400 ${normalBasePx}px ${fontStack}`;
-    const tiltFontSpec = `300 ${tiltBasePx}px ${fontStack} italic`;
+    const normalFontSpec = `${resolveThemeFontWeight(theme, 400)} ${normalBasePx}px ${fontStack}`;
+    const tiltFontSpec = `${resolveThemeFontWeight(theme, 300)} ${tiltBasePx}px ${fontStack} italic`;
     const availableWidth = getAvailableWidth();
 
     const charCount = fullText.trim().length;
@@ -396,6 +396,8 @@ const TiltLine: React.FC<{
     }, [graphemes]);
 
     useInsertionEffect(() => {
+        if (!currentTime) return;
+
         const handler = (latest: number) => {
             if (!visible) return;
             const mvs = charScaleMvs.current;
@@ -440,7 +442,7 @@ const TiltLine: React.FC<{
                     color: colors.normal,
                     fontFamily: 'inherit',
                     lineHeight: 1.35,
-                    fontWeight: 400,
+                    fontWeight: resolveThemeFontWeight(theme, 400),
                     letterSpacing: '0.08em',
                 }}
             >
@@ -491,7 +493,7 @@ const TiltLine: React.FC<{
                 fontFamily: 'inherit',
                 fontStyle: 'italic',
                 lineHeight: 1.25,
-                fontWeight: 300,
+                fontWeight: resolveThemeFontWeight(theme, 300),
                 letterSpacing: '0.15em',
             }}
         >
@@ -548,10 +550,13 @@ const VisualizerTilt: React.FC<VisualizerTiltProps & { staticMode?: boolean; }> 
         showText = true,
         staticMode = false,
         lyricsFontScale = 1,
+        subtitleFontScale = 1,
         subtitleOverlayOpacity,
+        subtitleOverlayBackground,
         isPlayerChromeHidden = false,
         hideTranslationSubtitle = false,
         showSubtitleTranslation = true,
+        subtitleContentMode,
         tiltTuning = DEFAULT_TILT_TUNING,
     } = props;
     const { t } = useTranslation();
@@ -682,9 +687,12 @@ const VisualizerTilt: React.FC<VisualizerTiltProps & { staticMode?: boolean; }> 
                 translationFontSize={translationFontSize}
                 upcomingFontSize={upcomingFontSize}
                 subtitleOverlayOpacity={subtitleOverlayOpacity}
+                subtitleOverlayBackground={subtitleOverlayBackground}
+                subtitleFontScale={subtitleFontScale}
                 isPlayerChromeHidden={isPlayerChromeHidden}
                 hideTranslationSubtitle={hideTranslationSubtitle}
                 showSubtitleTranslation={showSubtitleTranslation}
+                subtitleContentMode={subtitleContentMode}
             />
         </VisualizerShell>
     );

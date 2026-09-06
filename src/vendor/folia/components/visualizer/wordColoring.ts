@@ -81,7 +81,7 @@ export const prepareWordColorMatchers = (
         return [];
     }
 
-    return wordColors.flatMap(entry => {
+    return wordColors.flatMap<WordColorMatcher>(entry => {
         const target = resolveWordColorEntryText(entry);
         if (!target) {
             return [];
