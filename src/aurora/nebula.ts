@@ -67,14 +67,19 @@
     }
 
     float nebulaPattern(vec3 point) {
-      point.xz *= rotate2d(u_time * 0.08);
-      point.xy *= rotate2d(u_time * 0.08);
+      // Advect the internal field along the aurora ribbon instead of rotating
+      // the whole shape. The silhouette stays stable while light races through it.
+      point.xz *= rotate2d(sin(u_time * 0.28) * 0.12);
+      point.xy *= rotate2d(cos(u_time * 0.21) * 0.08);
 
-      vec3 layeredPoint = point * 3.0 + u_time * 0.000001;
+      vec3 layeredPoint = point * 3.0 + vec3(u_time * 1.25, -u_time * 0.48, u_time * 0.82);
+      float primaryFlow = sin(layeredPoint.x + sin(layeredPoint.z + sin(layeredPoint.y)));
+      float softWake = sin(layeredPoint.y * 1.7 - layeredPoint.z * 0.65 + u_time * 0.75);
 
-      return length(point + vec3(sin(u_time * 1.45)) * 0.1)
+      return length(point + vec3(sin(u_time * 0.62)) * 0.07)
           * log(length(point) + 1.0)
-          + sin(layeredPoint.x + sin(layeredPoint.z + sin(layeredPoint.y))) * 0.25
+          + primaryFlow * 0.25
+          + softWake * 0.055
           - 1.0;
     }
 
@@ -82,7 +87,7 @@
       float ringRadius = 2.0;
       vec2 ringPoint = vec2(length(point.xz) - ringRadius, point.y);
       float ringAngle = atan(point.z, point.x);
-      float baseShape = nebulaPattern(vec3(ringPoint.y, ringPoint.x, ringAngle * 1.8));
+      float baseShape = nebulaPattern(vec3(ringPoint.y, ringPoint.x, ringAngle * 1.8 - u_time * 0.92));
 
       float pointerDistance = length(fragmentCoordinate - u_mouse);
       float rippleWave = sin(pointerDistance * 0.05 - u_time * 3.0);
@@ -136,7 +141,8 @@
         vec3 litColor = baseColor + rimLight * u_cyan_rim * 0.15;
 
         vec3 emission = litColor * max(lightGradient, 0.0) * 23.0;
-        float density = smoothstep(1.6, 0.0, distanceToSurface) * 0.95;
+        // A wider density shoulder gives the moving ribbon a soft optical bloom.
+        float density = smoothstep(1.9, -0.08, distanceToSurface) * 0.9;
         accumulatedColor += emission * density;
 
         rayDistance += min(distanceToSurface, 1.0);

@@ -10,7 +10,7 @@ export function StudioAuroraBackground({ mode, currentTime, theme, isDaylight = 
   useEffect(() => {
     const container = host.current, target = canvas.current;
     if (!container || !target) return;
-    const renderer = createNebulaCanvas({ canvas: target, container, fragmentSource: mode === 'aurora-curtain' ? curtainShader : undefined, autoStart: false, trackPointer: false, renderScale: .72,
+    const renderer = createNebulaCanvas({ canvas: target, container, fragmentSource: mode === 'aurora-curtain' ? curtainShader : undefined, autoStart: false, trackPointer: false, renderScale: mode === 'aurora-nebula' ? .64 : .72,
       schemes: [isDaylight
         ? { deepBlue: [0.13,0.085,0.12], orange: [0.6,0.29,0.18], warmYellow: [1,0.78,0.51], cyanRim: [0.6,0.85,0.84] }
         : theme.backgroundColor === '#102d2c'
@@ -22,7 +22,7 @@ export function StudioAuroraBackground({ mode, currentTime, theme, isDaylight = 
       const targetTime = currentTime.get();
       const delta = Math.min(.05, Math.max(0, (stamp - previousStamp) / 1000));
       smoothTime += (targetTime - smoothTime) * (1 - Math.exp(-delta * 12));
-      renderer.renderFrame(mode === 'aurora-curtain' ? smoothTime : smoothTime * .1 + 1.8);
+      renderer.renderFrame(mode === 'aurora-curtain' ? smoothTime : smoothTime * .55 + 1.8);
       previousStamp = stamp; frame = requestAnimationFrame(draw);
     };
     frame = requestAnimationFrame(draw);

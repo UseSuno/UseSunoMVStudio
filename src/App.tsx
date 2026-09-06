@@ -11,7 +11,7 @@ import { Timeline } from './components/Timeline';
 import { LyricsPanel } from './components/LyricsPanel';
 import { Inspector } from './components/Inspector';
 import { Modal } from './components/Modal';
-import { ExportModal } from './components/ExportModal';
+import { ExportModal, type ExportArtifact } from './components/ExportModal';
 import { ensureProjectFont, installLocalFont } from './fonts/fonts';
 import { realignTimedLinesToPlain } from './import/embedded';
 // The editor coordinates user operations; clocks and render loops live outside app state.
@@ -24,6 +24,7 @@ export default function App() {
   const [selected, select] = useState<string | null>(null), [modal, setModal] = useState<'paste' | 'export' | 'save' | null>(null), [text, setText] = useState('');
   const [toast, setToast] = useState(''), [dragging, setDragging] = useState(false), [includeAudio, setIncludeAudio] = useState(true);
   const [candidates, setCandidates] = useState<EmbeddedCandidate[]>([]);
+  const [exportArtifact, setExportArtifact] = useState<ExportArtifact | null>(null);
   const audioInput = useRef<HTMLInputElement>(null), lyricsInput = useRef<HTMLInputElement>(null), projectInput = useRef<HTMLInputElement>(null), fontInput = useRef<HTMLInputElement>(null), temperaInput = useRef<HTMLInputElement>(null), monetInput = useRef<HTMLInputElement>(null);
   const current = useRef(project); current.current = project;
   const sourceUrl = useRef(''), loadGeneration = useRef(0);
@@ -140,7 +141,7 @@ export default function App() {
     {busy && <div className="busy-overlay" role="status"><Loader2 className="spin" size={24}/><p>{busy}</p></div>}
     {dragging && <div className="drop-overlay"><Upload size={32}/><strong>放下音频与歌词</strong><span>同时拖入歌曲和 LRC，即可开始创作</span></div>}
     {modal === 'paste' && <Modal title="添加歌词" close={() => setModal(null)} wide><p className="modal-description">粘贴纯文本、LRC 或增强逐字 LRC。纯文本可以在时间轴中逐行打点。</p><textarea autoFocus className="source-editor" aria-label="粘贴歌词内容" placeholder={'[00:02.00]风把远方写成了诗\n[00:07.00]落在你经过的城市\n\n也可以直接粘贴没有时间轴的歌词…'} value={text} onChange={e => setText(e.target.value)}/><div className="modal-actions"><button onClick={() => { setModal(null); lyricsInput.current?.click(); }}><FileUp size={15}/>选择文件</button><button className="primary" disabled={!text.trim()} onClick={() => { try { applyLyrics(text); setModal(null); } catch (err) { notify((err as Error).message); } }}>添加到时间轴</button></div></Modal>}
-    {modal === 'export' && <ExportModal clock={clock} project={project} buffer={buffer} peaks={peaks} close={() => setModal(null)}/>}
+    {modal === 'export' && <ExportModal clock={clock} project={project} buffer={buffer} peaks={peaks} artifact={exportArtifact} setArtifact={setExportArtifact} close={() => setModal(null)}/>}
     {modal === 'save' && <Modal title="保存创作工程" close={() => setModal(null)}><p className="modal-description">下载可继续编辑的 .lyricmv 工程。画幅、动画参数、歌词校时、字体和图片素材都会保留。</p><label className="toggle-label package-toggle"><span>包含音频素材 <small>在其他设备上继续创作</small></span><input type="checkbox" checked={includeAudio} onChange={e => setIncludeAudio(e.target.checked)}/></label><div className="modal-actions"><button onClick={() => downloadBlob(new Blob([toLrc(project.lines, project.offset)], { type: 'text/plain;charset=utf-8' }), `${project.title}.lrc`)}>仅下载 LRC</button><button className="primary" onClick={() => { void downloadProject(project, audio, includeAudio, fontBlob, coverBlob, monetPortraitBlob).then(() => { setModal(null); notify('工程已下载。'); }).catch(e => notify(e.message)); }}><ArrowDownToLine size={15}/>下载工程</button></div></Modal>}
   </div>;
 }

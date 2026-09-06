@@ -36,7 +36,7 @@ export const templates: { id: TemplateId; name: string; english: string; descrip
 export const backgrounds: { id: BackgroundId; name: string; description: string }[] = [
   { id: 'latent', name: '流体织光', description: '低频流动的封面色场' },
   { id: 'common', name: '主题空间', description: '几何与主题色背景' },
-  { id: 'aurora-nebula', name: '极光星云', description: '云雾状纵深极光' },
+  { id: 'aurora-nebula', name: '极光星云', description: '快速流动的柔光星云' },
   { id: 'aurora-curtain', name: '极光光幕', description: '连续摆动的竖向光帘' },
 ];
 export const palettes = {
