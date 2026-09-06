@@ -87,7 +87,10 @@
       float ringRadius = 2.0;
       vec2 ringPoint = vec2(length(point.xz) - ringRadius, point.y);
       float ringAngle = atan(point.z, point.x);
-      float baseShape = nebulaPattern(vec3(ringPoint.y, ringPoint.x, ringAngle * 1.8 - u_time * 0.92));
+      // Keep the ring coordinates bounded. Flow belongs in the periodic noise
+      // phase above; translating this distance-field axis makes the whole
+      // nebula leave the viewport as playback time grows.
+      float baseShape = nebulaPattern(vec3(ringPoint.y, ringPoint.x, ringAngle * 1.8));
 
       float pointerDistance = length(fragmentCoordinate - u_mouse);
       float rippleWave = sin(pointerDistance * 0.05 - u_time * 3.0);
