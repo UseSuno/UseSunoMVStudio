@@ -19,6 +19,7 @@ const entries: StudioVisualizerEntry[] = [
   { id: 'folia-monet', renderer: lazy(() => import('../vendor/folia/components/visualizer/monet/VisualizerMonet')), fastExport: false },
   { id: 'folia-cappella', renderer: lazy(() => import('../vendor/folia/components/visualizer/cappella/VisualizerCappella')), fastExport: false },
   { id: 'folia-diorama', renderer: lazy(() => import('../vendor/folia/components/visualizer/diorama/VisualizerDiorama')), fastExport: true },
+  { id: 'folia-aurora', renderer: lazy(() => import('../aurora/AuroraStudio')), fastExport: true },
   { id: 'folia-pendolo', renderer: lazy(() => import('../vendor/folia/components/visualizer/pendolo/VisualizerPendolo')), fastExport: false },
   { id: 'folia-tempera', renderer: lazy(() => import('../vendor/folia/components/visualizer/tempera/VisualizerTempera')), fastExport: true, usesWordSegmentation: true },
   { id: 'folia-sonnet', renderer: lazy(() => import('../vendor/folia/components/visualizer/sonnet/VisualizerSonnet')), fastExport: true, usesWordSegmentation: true },

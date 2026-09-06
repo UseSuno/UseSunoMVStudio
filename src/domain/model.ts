@@ -13,6 +13,8 @@ export interface Project {
   template: TemplateId; background: BackgroundId; ratio: '16:9' | '9:16' | '1:1'; palette: 'paper' | 'midnight' | 'moss';
   font: FontId; customFontName?: string; fontWeight: number; fontScale: number; intensity: number; offset: number; estimatedReveal: boolean;
   temperaLayerImages: TemperaProjectImage[];
+  coverMimeType?: string; monetPortraitSource: 'cover' | 'custom'; monetPortraitName?: string; monetPortraitMimeType?: string;
+  monetPortraitStyle: 'square' | 'rectangular'; monetPortraitOffsetX: number;
   lines: LyricLine[]; source: string; audioName: string; seed: number;
 }
 export const templates: { id: TemplateId; name: string; english: string; description: string; number: string }[] = [
@@ -25,10 +27,11 @@ export const templates: { id: TemplateId; name: string; english: string; descrip
   { id: 'folia-monet', name: '莫奈', english: 'Monet · Folia', description: '海报构图，流动歌词', number: '07' },
   { id: 'folia-cappella', name: '群唱', english: 'Cappella · Folia', description: '聊天气泡，多人对唱', number: '08' },
   { id: 'folia-diorama', name: '镜台', english: 'Diorama · Folia', description: '三维歌词，镜头穿行', number: '09' },
-  { id: 'folia-pendolo', name: '时计', english: 'Pendolo · Folia', description: '钟表轮盘，弧线流转', number: '10' },
-  { id: 'folia-tempera', name: '凝彩', english: 'Tempera · Folia', description: '逐字构图，印刷拼贴', number: '11' },
-  { id: 'folia-sonnet', name: '商籁', english: 'Sonnet · Folia', description: '日系字效，镜头导演', number: '12' },
-  { id: 'folia-still', name: '静帧', english: 'Still · Folia', description: '留白海报，低耗呈现', number: '13' },
+  { id: 'folia-aurora', name: '极光穿梭', english: 'Aurora Traverse · Studio', description: '逐字生成空间路径，镜头连续穿越', number: '10' },
+  { id: 'folia-pendolo', name: '时计', english: 'Pendolo · Folia', description: '钟表轮盘，弧线流转', number: '11' },
+  { id: 'folia-tempera', name: '凝彩', english: 'Tempera · Folia', description: '逐字构图，印刷拼贴', number: '12' },
+  { id: 'folia-sonnet', name: '商籁', english: 'Sonnet · Folia', description: '日系字效，镜头导演', number: '13' },
+  { id: 'folia-still', name: '静帧', english: 'Still · Folia', description: '留白海报，低耗呈现', number: '14' },
 ];
 export const backgrounds: { id: BackgroundId; name: string; description: string }[] = [
   { id: 'latent', name: '流体织光', description: '低频流动的封面色场' },
@@ -50,7 +53,7 @@ export const demoSource = `[00:02.00]风把远方写成了诗
 [00:34.00]所有未说出口的话
 [00:39.00]都在这一刻抵达`;
 export function defaultProject(lines: LyricLine[]): Project {
-  return { version: 2, title: '把日子写成诗', artist: '原创演示 · 环境音', duration: 46, template: 'folia-fume', background: 'latent', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, temperaLayerImages: [], lines, source: demoSource, audioName: '', seed: 42 };
+  return { version: 2, title: '把日子写成诗', artist: '原创演示 · 环境音', duration: 46, template: 'folia-fume', background: 'latent', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, temperaLayerImages: [], monetPortraitSource: 'cover', monetPortraitStyle: 'square', monetPortraitOffsetX: 0, lines, source: demoSource, audioName: '', seed: 42 };
 }
 export function dimensions(ratio: Project['ratio'], height = 720): [number, number] {
   if (ratio === '9:16') return [Math.round(height * 9 / 16 / 2) * 2, height];

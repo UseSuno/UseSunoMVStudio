@@ -1,8 +1,47 @@
 // Preserve SYLT word events by aligning against a matching USLT text, never treating each glyph as a line.
+import type { LyricLine } from '../domain/model';
 interface Tag { language?: string; text?: string; timeStampFormat?: number; syncText?: { text: string; timestamp?: number }[] }
 export interface EmbeddedCandidate { text: string; label: string }
 const normalized = (s: string) => s.replace(/\s/g, '');
 const stamp = (ms: number) => { const t = Math.max(0, ms / 1000); return `${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`; };
+
+const sectionHeading = /^\s*\[(?!\d{1,3}:)[^\]]+\]\s*$/u;
+
+/**
+ * Reapply a trustworthy plain-lyric line layout to an already timed lyric.
+ * This repairs provider hard wraps such as "your sle" / "eve" while keeping
+ * the first and last timestamps covered by each restored line.
+ */
+export function realignTimedLinesToPlain(lines: LyricLine[], plain: string): LyricLine[] | null {
+  if (!lines.length || lines.some(line => line.start === null || line.end === null) || /\[\d{1,3}:\d{2}/u.test(plain)) return null;
+  const rows = plain.split(/\r?\n/u).map(row => row.trim()).filter(row => row && !sectionHeading.test(row));
+  const compact = (value: string) => value.replace(/\s/gu, '');
+  if (!rows.length || compact(lines.map(line => line.text).join('')) !== compact(rows.join(''))) return null;
+
+  let sourceCursor = 0;
+  const spans = lines.map(line => {
+    const start = sourceCursor;
+    sourceCursor += compact(line.text).length;
+    return { line, start, end: sourceCursor };
+  });
+  let targetCursor = 0;
+  return rows.map((text, index) => {
+    const start = targetCursor;
+    targetCursor += compact(text).length;
+    const contributors = spans.filter(span => span.end > start && span.start < targetCursor);
+    const first = contributors[0]?.line;
+    const last = contributors.at(-1)?.line;
+    return {
+      id: first?.id ?? `aligned-${index}`,
+      text,
+      start: first!.start,
+      end: last!.end,
+      precision: contributors.some(({ line }) => line.precision === 'manual') ? 'manual' : 'imported',
+      words: [],
+    };
+  });
+}
+
 export function normalizeEmbedded(tags: Tag[]): EmbeddedCandidate[] {
   const candidates: EmbeddedCandidate[] = [];
   const add = (text: string, label: string) => { if (text.trim() && !candidates.some(c => c.text === text)) candidates.push({ text, label }); };

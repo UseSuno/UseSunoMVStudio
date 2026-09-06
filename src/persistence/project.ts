@@ -1,6 +1,6 @@
 import type { Project } from '../domain/model';
 // Versioned persistence and portable project bundles never execute imported content.
-export interface SavedProject { project: Project; audio: Blob | null; font?: Blob | null }
+export interface SavedProject { project: Project; audio: Blob | null; font?: Blob | null; cover?: Blob | null; monetPortrait?: Blob | null }
 function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => { const req = indexedDB.open('verse-studio', 1); req.onupgradeneeded = () => req.result.createObjectStore('projects'); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 }
@@ -10,7 +10,7 @@ export async function saveLocal(saved: SavedProject) {
 }
 export async function loadLocal(): Promise<SavedProject | null> {
   const db = await database();
-  try { return await new Promise((resolve, reject) => { const req = db.transaction('projects').objectStore('projects').get('current'); req.onsuccess = () => { try { if (!req.result) return resolve(null); resolve({ project: validateProject(req.result.project), audio: req.result.audio instanceof Blob ? req.result.audio : null, font: req.result.font instanceof Blob ? req.result.font : null }); } catch (err) { reject(err); } }; req.onerror = () => reject(req.error); }); } finally { db.close(); }
+  try { return await new Promise((resolve, reject) => { const req = db.transaction('projects').objectStore('projects').get('current'); req.onsuccess = () => { try { if (!req.result) return resolve(null); resolve({ project: validateProject(req.result.project), audio: req.result.audio instanceof Blob ? req.result.audio : null, font: req.result.font instanceof Blob ? req.result.font : null, cover: req.result.cover instanceof Blob ? req.result.cover : null, monetPortrait: req.result.monetPortrait instanceof Blob ? req.result.monetPortrait : null }); } catch (err) { reject(err); } }; req.onerror = () => reject(req.error); }); } finally { db.close(); }
 }
 export function validateProject(value: unknown): Project {
   if (!value || typeof value !== 'object') throw new Error('无效的工程文件。');
@@ -23,6 +23,12 @@ export function validateProject(value: unknown): Project {
   const fonts = ['serif', 'sans', 'google', 'noto-serif-sc', 'noto-sans-sc', 'lxgw-wenkai', 'ma-shan-zheng', 'dm-sans', 'playfair-display', 'local'];
   if (!['article', 'flow', 'tilt', 'folia-fume', 'folia-classic', 'folia-partita', 'folia-cadenza', 'folia-tilt', 'folia-claddagh', 'folia-monet', 'folia-cappella', 'folia-diorama', 'folia-aurora', 'folia-curtain', 'folia-pendolo', 'folia-tempera', 'folia-sonnet', 'folia-still'].includes(p.template) || !['16:9', '9:16', '1:1'].includes(p.ratio) || !['paper', 'midnight', 'moss'].includes(p.palette) || !fonts.includes(p.font) || typeof p.estimatedReveal !== 'boolean') throw new Error('工程模板或画幅无效。');
   if (p.customFontName !== undefined && (typeof p.customFontName !== 'string' || p.customFontName.length > 200)) throw new Error('本地字体名称无效。');
+  if (p.monetPortraitSource !== undefined && !['cover','custom'].includes(p.monetPortraitSource)) throw new Error('莫奈图片来源无效。');
+  if (p.monetPortraitStyle !== undefined && !['square','rectangular'].includes(p.monetPortraitStyle)) throw new Error('莫奈图片比例无效。');
+  if (p.monetPortraitOffsetX !== undefined && !finite(p.monetPortraitOffsetX, -500, 500)) throw new Error('莫奈图片偏移无效。');
+  if (p.monetPortraitName !== undefined && (typeof p.monetPortraitName !== 'string' || p.monetPortraitName.length > 300)) throw new Error('莫奈图片名称无效。');
+  if (p.monetPortraitMimeType !== undefined && typeof p.monetPortraitMimeType !== 'string') throw new Error('莫奈图片类型无效。');
+  if (p.coverMimeType !== undefined && typeof p.coverMimeType !== 'string') throw new Error('封面图片类型无效。');
   if (!Array.isArray(p.lines) || p.lines.length > 2000) throw new Error('歌词行数超出限制。');
   if (p.temperaLayerImages !== undefined && (!Array.isArray(p.temperaLayerImages) || p.temperaLayerImages.length > 16 || p.temperaLayerImages.some(image => !image || typeof image.id !== 'string' || typeof image.name !== 'string' || (image.mimeType !== undefined && typeof image.mimeType !== 'string') || !['left','center','right','free'].includes(image.align) || !['top','center','bottom','free'].includes(image.verticalAlign) || !finite(image.scale, .1, 2) || !finite(image.opacity, 0, 1)))) throw new Error('凝彩图片池无效。');
   const ids = new Set<string>();
@@ -35,8 +41,8 @@ export function validateProject(value: unknown): Project {
   }
   const legacyBackground = p.template === 'folia-curtain' || (p.template === 'folia-aurora' && p.auroraBackground === 'curtain') ? 'aurora-curtain' : p.template === 'folia-aurora' ? 'aurora-nebula' : undefined;
   const background = legacyBackground ?? (['common', 'latent', 'aurora-nebula', 'aurora-curtain'].includes(p.background) ? p.background : 'latent');
-  const migrated: Project = { ...p, version: 2, background, temperaLayerImages: p.temperaLayerImages ?? [], fontWeight: finite(p.fontWeight, 100, 900) ? p.fontWeight : 600 };
-  if (p.template === 'folia-aurora' || p.template === 'folia-curtain') migrated.template = 'folia-diorama';
+  const migrated: Project = { ...p, version: 2, background, temperaLayerImages: p.temperaLayerImages ?? [], monetPortraitSource: p.monetPortraitSource ?? 'cover', monetPortraitStyle: p.monetPortraitStyle ?? 'square', monetPortraitOffsetX: p.monetPortraitOffsetX ?? 0, fontWeight: finite(p.fontWeight, 100, 900) ? p.fontWeight : 600 };
+  if (p.template === 'folia-curtain') migrated.template = 'folia-aurora';
   delete migrated.auroraBackground;
   if (['article','flow','tilt'].includes(p.template)) migrated.template = ({ article: 'folia-fume', flow: 'folia-classic', tilt: 'folia-tilt' } as const)[p.template as 'article' | 'flow' | 'tilt'];
   return structuredClone(migrated);
@@ -44,11 +50,13 @@ export function validateProject(value: unknown): Project {
 export function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
-export async function downloadProject(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null) {
+export async function downloadProject(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null, cover?: Blob | null, monetPortrait?: Blob | null) {
   const { zipSync, strToU8 } = await import('fflate');
   const files: Record<string, Uint8Array> = { 'project.json': strToU8(JSON.stringify(project)) };
   if (includeAudio && audio) files['audio.bin'] = new Uint8Array(await audio.arrayBuffer());
   if (font) files['font.bin'] = new Uint8Array(await font.arrayBuffer());
+  if (cover) files['cover.bin'] = new Uint8Array(await cover.arrayBuffer());
+  if (monetPortrait) files['monet-portrait.bin'] = new Uint8Array(await monetPortrait.arrayBuffer());
   const { getTemperaLayerImage } = await import('../vendor/folia/services/temperaLayerImages');
   await Promise.all(project.temperaLayerImages.map(async image => { const stored = await getTemperaLayerImage(image.id); if (stored?.blob) files[`tempera/${encodeURIComponent(image.id)}`] = new Uint8Array(await stored.blob.arrayBuffer()); }));
   const data = zipSync(files, { level: 0 }); downloadBlob(new Blob([data], { type: 'application/zip' }), `${project.title || '作品'}.lyricmv`);
@@ -58,10 +66,10 @@ export async function readProject(file: File): Promise<SavedProject> {
   if (file.name.endsWith('.json')) return { project: validateProject(JSON.parse(await file.text())), audio: null };
   const { unzipSync, strFromU8 } = await import('fflate');
   let total = 0;
-  const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: f => { total += f.originalSize; if (total > 250 * 1024 * 1024) throw new Error('工程解压大小超出限制。'); return f.name === 'project.json' || f.name === 'audio.bin' || f.name === 'font.bin' || f.name.startsWith('tempera/'); } });
+  const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: f => { total += f.originalSize; if (total > 250 * 1024 * 1024) throw new Error('工程解压大小超出限制。'); return f.name === 'project.json' || f.name === 'audio.bin' || f.name === 'font.bin' || f.name === 'cover.bin' || f.name === 'monet-portrait.bin' || f.name.startsWith('tempera/'); } });
   if (!files['project.json']) throw new Error('工程包缺少 project.json。');
   const project = validateProject(JSON.parse(strFromU8(files['project.json'])));
   const { saveTemperaLayerImage } = await import('../vendor/folia/services/temperaLayerImages');
   await Promise.all(project.temperaLayerImages.map(async image => { const bytes = files[`tempera/${encodeURIComponent(image.id)}`]; if (bytes) { const mimeType = image.mimeType || 'application/octet-stream'; await saveTemperaLayerImage({ id: image.id, name: image.name, mimeType, blob: new Blob([bytes], { type: mimeType }) }); } }));
-  return { project, audio: files['audio.bin'] ? new Blob([files['audio.bin']]) : null, font: files['font.bin'] ? new Blob([files['font.bin']]) : null };
+  return { project, audio: files['audio.bin'] ? new Blob([files['audio.bin']]) : null, font: files['font.bin'] ? new Blob([files['font.bin']]) : null, cover: files['cover.bin'] ? new Blob([files['cover.bin']], { type: project.coverMimeType || 'application/octet-stream' }) : null, monetPortrait: files['monet-portrait.bin'] ? new Blob([files['monet-portrait.bin']], { type: project.monetPortraitMimeType || 'application/octet-stream' }) : null };
 }

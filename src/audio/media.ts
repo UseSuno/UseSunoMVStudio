@@ -21,6 +21,8 @@ export function demoAudio(): Blob {
 }
 export async function embeddedLyrics(file: Blob) {
   const { parseBlob } = await import('music-metadata');
-  const metadata = await parseBlob(file, { skipCovers: true });
-  return { title: metadata.common.title, artist: metadata.common.artist, candidates: normalizeEmbedded(metadata.common.lyrics ?? []) };
+  const metadata = await parseBlob(file);
+  const picture = metadata.common.picture?.[0];
+  const cover = picture ? new Blob([new Uint8Array(picture.data)], { type: picture.format || 'image/jpeg' }) : null;
+  return { title: metadata.common.title, artist: metadata.common.artist, cover, candidates: normalizeEmbedded(metadata.common.lyrics ?? []) };
 }

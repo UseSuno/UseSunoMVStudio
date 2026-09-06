@@ -27,7 +27,7 @@ class Boundary extends Component<{ children: React.ReactNode }, { error: string 
   render() { return this.state.error ? <div className="folia-failure">模板加载失败：{this.state.error}</div> : this.props.children; }
 }
 function FoliaHost() {
-  const [project, setProject] = useState<Project | null>(null), [index, setIndex] = useState(-1), [paused, setPaused] = useState(true), [epoch, setEpoch] = useState(0);
+  const [project, setProject] = useState<Project | null>(null), [index, setIndex] = useState(-1), [paused, setPaused] = useState(true), [epoch, setEpoch] = useState(0), [artwork, setArtwork] = useState<{ coverUrl: string | null; portraitUrl: string | null }>({ coverUrl: null, portraitUrl: null });
   const time = useMotionValue(0), power = useMotionValue(0), bass = useMotionValue(0), lowMid = useMotionValue(0), mid = useMotionValue(0), vocal = useMotionValue(0), treble = useMotionValue(0);
   const fontsEpoch = useFontsEpoch();
   const lines = useMemo(() => project ? foliaLines(project) : [], [project]); const theme = useMemo(() => project ? foliaTheme(project) : null, [project]);
@@ -37,6 +37,7 @@ function FoliaHost() {
     const handle = (e: MessageEvent) => {
       if (e.origin !== location.origin || e.source !== parent || !e.data || typeof e.data !== 'object') return;
       if (e.data.type === 'verse:project') { setProject(e.data.project); return; }
+      if (e.data.type === 'verse:artwork') { setArtwork({ coverUrl: typeof e.data.coverUrl === 'string' ? e.data.coverUrl : null, portraitUrl: typeof e.data.portraitUrl === 'string' ? e.data.portraitUrl : null }); return; }
       if (e.data.type === 'verse:font' && e.data.buffer instanceof ArrayBuffer) { const family = typeof e.data.family === 'string' && e.data.family ? e.data.family : 'Verse Local Font'; const face = new FontFace(family, e.data.buffer); void face.load().then(loaded => { document.fonts.add(loaded); setEpoch(value => value + 1); }); return; }
       if (e.data.type === 'verse:capture' && typeof e.data.requestId === 'string') {
         const requestId = e.data.requestId;
@@ -70,11 +71,11 @@ function FoliaHost() {
   if (!project || !theme) return <div className="folia-loading">正在准备 Folia 舞台…</div>;
   const Renderer = getStudioVisualizer(project.template).renderer;
   const customAurora = project.background === 'aurora-nebula' || project.background === 'aurora-curtain';
-  const renderer = <Renderer currentTime={time} currentLineIndex={index} lines={lines} theme={theme} audioPower={power} audioBands={{ bass, lowMid, mid, vocal, treble }} paused={paused} showText seed={project.seed} lyricsFontScale={project.fontScale} isDaylight={project.palette === 'paper'} songTitle={project.title} songArtist={project.artist} isPlayerChromeHidden hideTranslationSubtitle showSubtitleTranslation={false}
+  const renderer = <Renderer currentTime={time} currentLineIndex={index} lines={lines} theme={theme} audioPower={power} audioBands={{ bass, lowMid, mid, vocal, treble }} paused={paused} showText seed={project.seed} lyricsFontScale={project.fontScale} isDaylight={project.palette === 'paper'} songTitle={project.title} songArtist={project.artist} coverUrl={artwork.coverUrl} monetPortraitImage={artwork.portraitUrl ? { id: 'studio-monet-portrait', name: project.monetPortraitName || '自定义图片', url: artwork.portraitUrl } : null} isPlayerChromeHidden hideTranslationSubtitle showSubtitleTranslation={false}
     background={customAurora ? { transparent: true } : { mode: project.background }}
     fumeTuning={{ ...DEFAULT_FUME_TUNING, cameraSpeed: project.intensity, disableGeometricBackground: false }}
     dioramaTuning={{ ...DEFAULT_DIORAMA_TUNING, cameraSpeed: project.intensity, motionAmount: project.intensity, audioReactivity: .25 }}
-    monetTuning={{ ...DEFAULT_MONET_TUNING, showAudioVisualization: false }}
+    monetTuning={{ ...DEFAULT_MONET_TUNING, showAudioVisualization: false, portraitSource: project.monetPortraitSource, portraitStyle: project.monetPortraitStyle, portraitOffsetX: project.monetPortraitOffsetX, showPortraitDragHanger: false }}
     pendoloTuning={{ ...DEFAULT_PENDOLO_TUNING, tickSnappiness: Math.max(.6, project.intensity * 2), activeScale: 1.15 + project.intensity * .1 }}
     sonnetTuning={{ ...DEFAULT_SONNET_TUNING, cameraIntensity: project.intensity, typographyMotion: project.intensity }}
     temperaTuning={{ ...DEFAULT_TEMPERA_TUNING, cameraIntensity: project.intensity, glyphMotion: project.intensity, layerImages: project.temperaLayerImages }}

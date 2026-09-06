@@ -24,13 +24,19 @@ it('accepts Google and local font selections', () => {
   expect(fontFamily(local)).toBe('My Font');
 });
 
-import { normalizeEmbedded } from '../src/import/embedded';
+import { normalizeEmbedded, realignTimedLinesToPlain } from '../src/import/embedded';
 describe('embedded synchronization', () => {
   it('aligns per-glyph SYLT to matching unsynchronized line breaks', () => {
     const candidates = normalizeEmbedded([{ timeStampFormat: 2, syncText: [{text:'风',timestamp:1000},{text:'来',timestamp:1300},{text:'了',timestamp:1600},{text:'你',timestamp:3000},{text:'好',timestamp:3400}] }, {text:'风来了\n你好'}]);
     const result = parseLyrics(candidates[0].text, 10); expect(result.lines).toHaveLength(2); expect(result.lines[0].text).toBe('风来了'); expect(result.lines[0].words).toHaveLength(3); expect(result.lines[1].start).toBe(3);
   });
   it('does not misread MPEG frame timestamps as milliseconds', () => { const c = normalizeEmbedded([{timeStampFormat:1,syncText:[{text:'风',timestamp:1000}]}]); expect(c[0].text).toBe('风'); expect(c[0].label).toContain('需校时'); });
+  it('repairs English provider hard wraps from the embedded plain lyric', () => {
+    const timed = parseLyrics('[00:20.80]We reach the gate as station shutters\n[00:23.10]fall\n[00:24.10]A guard turns the final sign to closed\n[00:37.40]The vending-machine glow colors your sle\n[00:40.60]eve\n[00:41.70]You take a coffee; I do the same', 50).lines;
+    const aligned = realignTimedLinesToPlain(timed, '[Verse 1]\nWe reach the gate as station shutters fall\nA guard turns the final sign to closed\nThe vending-machine glow colors your sleeve\nYou take a coffee; I do the same');
+    expect(aligned?.map(line => line.text)).toEqual(['We reach the gate as station shutters fall', 'A guard turns the final sign to closed', 'The vending-machine glow colors your sleeve', 'You take a coffee; I do the same']);
+    expect(aligned?.map(line => [line.start, line.end])).toEqual([[20.8, 24.1], [24.1, 32.1], [37.4, 41.7], [41.7, 49.7]]);
+  });
 });
 
 it('persists every selectable Folia mode without losing its identity', () => {
