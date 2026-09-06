@@ -122,14 +122,18 @@ export function analyzeAudio(buffer: AudioBuffer, fps = AUDIO_ANALYSIS_FPS): Aud
 }
 
 export function sampleAudioAnalysis(analysis: AudioAnalysis, time: number): AudioSample {
-  const index = Math.max(0, Math.min(analysis.power.length - 1, Math.floor(Math.max(0, time) * analysis.fps)));
-  if (index < 0 || !analysis.power.length) return { power: 0, bass: 0, lowMid: 0, mid: 0, vocal: 0, treble: 0 };
+  if (!analysis.power.length) return { power: 0, bass: 0, lowMid: 0, mid: 0, vocal: 0, treble: 0 };
+  const position = Math.max(0, time) * analysis.fps;
+  const lower = Math.max(0, Math.min(analysis.power.length - 1, Math.floor(position)));
+  const upper = Math.min(analysis.power.length - 1, lower + 1);
+  const amount = Math.max(0, Math.min(1, position - lower));
+  const read = (values: Uint8Array) => (values[lower] ?? 0) + ((values[upper] ?? values[lower] ?? 0) - (values[lower] ?? 0)) * amount;
   return {
-    power: analysis.power[index] ?? 0,
-    bass: analysis.bass[index] ?? 0,
-    lowMid: analysis.lowMid[index] ?? 0,
-    mid: analysis.mid[index] ?? 0,
-    vocal: analysis.vocal[index] ?? 0,
-    treble: analysis.treble[index] ?? 0,
+    power: read(analysis.power),
+    bass: read(analysis.bass),
+    lowMid: read(analysis.lowMid),
+    mid: read(analysis.mid),
+    vocal: read(analysis.vocal),
+    treble: read(analysis.treble),
   };
 }

@@ -24,12 +24,14 @@ void main(){
   float striation=pow(noise(vec2(x*35.0+warp*8.0,depth*7.0)),2.0);
   float patches=smoothstep(.23,.7,fbm(vec2(x*2.0-t*.1,depth*3.0+4.0)));
   float height=.15+.34*noise(vec2(x*1.6,depth*4.0));
-  float density=smoothstep(-.028,.045,altitude)*exp(-max(0.0,altitude)/height*3.8)*patches*(.16+striation*.84)*(.65+fine*.35)*(1.0+u_audio_bass*.10);
+  float density=smoothstep(-.028,.045,altitude)*exp(-max(0.0,altitude)/height*3.8)*patches*(.16+striation*.84)*(.65+fine*.35)*(1.0+u_audio_bass*.045);
   vec3 hue=mix(mix(vec3(.11,.79,.39),u_cyan_rim,.18),vec3(.26,.12,.38),smoothstep(.13,.45,altitude)*.65);
-  color+=mix(hue,u_cyan_rim,u_audio_vocal*.05)*density*(.23+u_audio_vocal*.015);
+  color+=mix(hue,u_cyan_rim,u_audio_vocal*.022)*density*.23;
  }
  vec2 grid=uv*vec2(420.0,260.0),cell=floor(grid),f=fract(grid)-.5;
- color+=vec3(.45,.57,.7)*step(.9975-u_audio_treble*.00035,hash(cell))*exp(-dot(f,f)*90.0)*.32;
+ // Keep star membership fixed. Modulating the threshold made whole groups of pale dots pop in and out.
+ vec3 starColor=mix(vec3(.24,.46,.61),u_cyan_rim,.55);
+ color+=starColor*step(.9975,hash(cell))*exp(-dot(f,f)*90.0)*(.26+u_audio_treble*.035);
  color*=.5+.5*(1.0-smoothstep(.25,.85,length((uv-.5)*vec2(.9,1.0))));
  gl_FragColor=vec4(1.0-exp(-color*1.65),1.0);
 }`;

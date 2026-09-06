@@ -32,4 +32,10 @@ describe('deterministic audio analysis', () => {
     expect(treble.treble).toBeGreaterThan(treble.lowMid);
     expect(sampleAudioAnalysis(analysis, 2.6)).toEqual(vocal);
   });
+
+  it('interpolates adjacent analysis frames instead of stepping at 30 fps', () => {
+    const values = new Uint8Array([0, 120]);
+    const analysis = { fps: 30, power: values, bass: values, lowMid: values, mid: values, vocal: values, treble: values };
+    expect(sampleAudioAnalysis(analysis, 1 / 60).treble).toBe(60);
+  });
 });
