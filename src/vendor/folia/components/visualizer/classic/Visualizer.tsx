@@ -8,6 +8,7 @@ import { getLineRenderEndTime, getLineRenderHints } from '../../../utils/lyrics/
 import { useVisualizerRuntime } from '../runtime';
 import { type VisualizerSharedProps } from '../definition';
 import VisualizerShell from '../VisualizerShell';
+import { LyricSafeFrame } from '../LyricSafeFrame';
 import VisualizerSubtitleOverlay from '../VisualizerSubtitleOverlay';
 import { buildPostLyricLayoutUnits, buildDisplayWordsFromLayoutUnits } from '../../../utils/lyrics/cjkSemanticLayout';
 import { buildWordGraphemeTimings } from '../../../utils/lyrics/graphemeTiming';
@@ -213,6 +214,7 @@ const Word: React.FC<{
             initial="waiting"
             animate={status}
             // Add `whitespace-nowrap` to prevent unexpected line breaks
+            data-lyric-bounds
             className="inline-block origin-center relative will-change-transform whitespace-nowrap"
             style={{
                 fontSize,
@@ -673,6 +675,7 @@ const Visualizer: React.FC<VisualizerProps> = (props) => {
                 animate={lyricContainerFloat?.animate}
                 transition={lyricContainerFloat?.transition}
             >
+                <LyricSafeFrame layoutKey={`${activeLine?.startTime}-${activeLine?.words.map(word => word.text).join(" ")}-${lyricsFontScale}-${theme.fontFamily}-${theme.animationIntensity}`}>
                 <AnimatePresence mode='popLayout'>
                     {showText && activeLine && (
                         <motion.div
@@ -726,6 +729,7 @@ const Visualizer: React.FC<VisualizerProps> = (props) => {
                         </motion.div>
                     )}
                 </AnimatePresence>
+                </LyricSafeFrame>
             </motion.div>
 
             <VisualizerSubtitleOverlay

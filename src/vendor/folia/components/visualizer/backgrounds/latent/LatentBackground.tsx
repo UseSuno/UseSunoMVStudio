@@ -258,7 +258,7 @@ const LatentBackground: React.FC<LatentBackgroundProps> = ({
 
     return (
         <div
-            className="absolute inset-0 z-0 overflow-hidden"
+            data-capture-solid className="absolute inset-0 z-0 overflow-hidden"
             style={{ backgroundColor: theme.backgroundColor, pointerEvents: 'none' }}
         >
             {showMesh && (
@@ -315,7 +315,7 @@ const LatentBackground: React.FC<LatentBackgroundProps> = ({
                 </div>
             )}
             {tuning.overlayEnabled && tuning.overlayOpacity > 0 && (
-                <div
+                <div data-capture-solid
                     className="absolute inset-0"
                     style={{
                         backgroundColor: theme.backgroundColor,

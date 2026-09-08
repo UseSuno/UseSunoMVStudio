@@ -1,6 +1,27 @@
+# Dependencies and generated builds
 node_modules/
-dist/
+/dist/
 *.tsbuildinfo
+
+# Local environment and private deployment configuration
+.env
+.env.*
+!/.env.example
+/.private/
+
+# Generated verification and exported media
 test-results/
 playwright-report/
+/coverage/
+/artifacts/
+/exports/
+/qa-*
+/tmp/
+/logs/
+*.log
+
+# Local editor and operating-system files
 .DS_Store
+.idea/
+*.swp
+*.swo

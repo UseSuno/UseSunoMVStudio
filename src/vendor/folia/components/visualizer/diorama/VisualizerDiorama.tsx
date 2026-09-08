@@ -21,6 +21,7 @@ import {
     updateActiveSegmentLines,
 } from './dioramaSequencer';
 import { pickTransitionOffset, TRANSITION_DURATION } from './dioramaTransition';
+import { dioramaLyricsSignature } from './lyricsSignature';
 
 // src/components/visualizer/diorama/VisualizerDiorama.tsx
 // A 3D "flythrough" style: lyric lines are actual staged text objects along a winding path in world
@@ -158,8 +159,8 @@ const VisualizerDiorama: React.FC<VisualizerDioramaProps> = (props) => {
     // fire = the transition hangs on instrumental songs. The effect keys on CONTENT signatures instead.
     const linesRef = useRef(lines);
     linesRef.current = lines;
-    const lyricsSig = lines.length === 0 ? '' : `${lines.length}|${lines[0]?.fullText ?? ''}`;
-    const committedSig = committedSong.lines.length === 0 ? '' : `${committedSong.lines.length}|${committedSong.lines[0]?.fullText ?? ''}`;
+    const lyricsSig = useMemo(() => dioramaLyricsSignature(lines), [lines]);
+    const committedSig = useMemo(() => dioramaLyricsSignature(committedSong.lines), [committedSong.lines]);
     useEffect(() => {
         // Same song already committed: re-commit only when the lyric CONTENT actually changed (a late load or
         // reprocess), so the in-place rebuild picks it up - never on a fresh-[] re-render.

@@ -11,7 +11,7 @@ export interface Project {
   auroraBackground?: 'nebula' | 'curtain';
   version: 2; title: string; artist: string; duration: number;
   template: TemplateId; background: BackgroundId; ratio: '16:9' | '9:16' | '1:1'; palette: 'paper' | 'midnight' | 'moss';
-  font: FontId; customFontName?: string; fontWeight: number; fontScale: number; intensity: number; offset: number; estimatedReveal: boolean;
+  font: FontId; customFontName?: string; fontWeight: number; fontScale: number; intensity: number; offset: number; estimatedReveal: boolean; autoIntro: boolean;
   audioReactivity: 'off' | 'gentle' | 'rhythmic'; audioReactivityAmount: number;
   temperaLayerImages: TemperaProjectImage[];
   coverMimeType?: string; monetPortraitSource: 'cover' | 'custom'; monetPortraitName?: string; monetPortraitMimeType?: string;
@@ -29,7 +29,7 @@ export const templates: { id: TemplateId; name: string; english: string; descrip
   { id: 'folia-monet', name: '莫奈', english: 'Monet · Folia', description: '海报构图，流动歌词', number: '07' },
   { id: 'folia-cappella', name: '群唱', english: 'Cappella · Folia', description: '聊天气泡，多人对唱', number: '08' },
   { id: 'folia-diorama', name: '镜台', english: 'Diorama · Folia', description: '三维歌词，镜头穿行', number: '09' },
-  { id: 'folia-aurora', name: '极光穿梭', english: 'Aurora Traverse · Studio', description: '逐字生成空间路径，镜头连续穿越', number: '10' },
+  { id: 'folia-aurora', name: '极光', english: 'Aurora Traverse · Studio', description: '逐字生成空间路径，镜头连续穿越', number: '10' },
   { id: 'folia-pendolo', name: '时计', english: 'Pendolo · Folia', description: '钟表轮盘，弧线流转', number: '11' },
   { id: 'folia-tempera', name: '凝彩', english: 'Tempera · Folia', description: '逐字构图，印刷拼贴', number: '12' },
   { id: 'folia-sonnet', name: '商籁', english: 'Sonnet · Folia', description: '日系字效，镜头导演', number: '13' },
@@ -47,15 +47,15 @@ export const palettes = {
   moss: { bg: '#233e36', ink: '#ece8d8', accent: '#c8df91', muted: '#6f8979' },
 };
 export const demoSource = `[00:02.00]风把远方写成了诗
-[00:07.00]落在你经过的城市
-[00:12.00]我们沿着光的方向
-[00:17.00]把平凡的日子珍藏
-[00:24.00]如果时间是一片海
-[00:29.00]就让回声慢慢盛开
-[00:34.00]所有未说出口的话
-[00:39.00]都在这一刻抵达`;
+[00:07.00]We follow the light through the city
+[00:12.00]風にのせて この歌を届けよう
+[00:17.00]별빛 아래 우리 함께 걸어요
+[00:24.00]Kita melangkah mengikuti cahaya
+[00:29.00]Wir tragen die Träume durch die Nacht
+[00:34.00]La música nos lleva hacia el mar
+[00:39.00]让每一种语言 都唱出心中的光`;
 export function defaultProject(lines: LyricLine[]): Project {
-  return { version: 2, title: '把日子写成诗', artist: '原创演示 · 环境音', duration: 46, template: 'folia-fume', background: 'latent', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, audioReactivity: 'gentle', audioReactivityAmount: .7, temperaLayerImages: [], monetPortraitSource: 'cover', monetPortraitStyle: 'square', monetPortraitOffsetX: 0, monetAudioVisualization: true, monetAudioStyle: 'bar', lines, source: demoSource, audioName: '', seed: 42 };
+  return { version: 2, title: 'Demo', artist: 'Demo', duration: 46, template: 'folia-fume', background: 'latent', ratio: '16:9', palette: 'midnight', font: 'serif', fontWeight: 600, fontScale: 1, intensity: 1, offset: 0, estimatedReveal: false, autoIntro: true, audioReactivity: 'gentle', audioReactivityAmount: .7, temperaLayerImages: [], monetPortraitSource: 'cover', monetPortraitStyle: 'square', monetPortraitOffsetX: 0, monetAudioVisualization: true, monetAudioStyle: 'bar', lines, source: demoSource, audioName: '', seed: 42 };
 }
 export function dimensions(ratio: Project['ratio'], height = 720): [number, number] {
   if (ratio === '9:16') return [Math.round(height * 9 / 16 / 2) * 2, height];

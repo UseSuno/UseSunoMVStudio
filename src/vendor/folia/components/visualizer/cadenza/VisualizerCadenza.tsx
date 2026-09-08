@@ -12,6 +12,7 @@ import { colorWithAlpha, mixColors } from '../colorMix';
 import { prepareActiveAndUpcoming, useVisualizerRuntime } from '../runtime';
 import { type VisualizerSharedProps } from '../definition';
 import VisualizerShell from '../VisualizerShell';
+import { LyricSafeFrame } from '../LyricSafeFrame';
 import VisualizerSubtitleOverlay from '../VisualizerSubtitleOverlay';
 import { resolveWordColor } from '../wordColoring';
 
@@ -140,6 +141,7 @@ const createOverlayWordNodes = (): OverlayWordNodes => {
 
     const inner = document.createElement('div');
     inner.className = 'whitespace-nowrap';
+    inner.setAttribute('data-lyric-bounds', '');
     inner.style.lineHeight = '1';
     inner.style.display = 'inline-block';
     inner.style.position = 'relative';
@@ -1678,6 +1680,7 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
             audioBands={audioBands}
             sharedProps={props}
         >
+            <LyricSafeFrame absolute layoutKey={preparedState}>
             <div
                 ref={lineLayerRef}
                 className="absolute inset-0 z-10 pointer-events-none"
@@ -1692,6 +1695,7 @@ const VisualizerCadenza: React.FC<VisualizerProps> = (props) => {
                 <div ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none select-none" />
                 <canvas ref={textCanvasRef} className="absolute inset-0 w-full h-full" />
             </div>
+            </LyricSafeFrame>
 
             <div className="relative z-10 w-full h-[70vh] flex items-center justify-center p-8 pointer-events-none">
                 <AnimatePresence mode="wait">

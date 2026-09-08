@@ -51,5 +51,5 @@ export function StudioAuroraBackground({ mode, currentTime, audioBands, theme, i
     frame = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(frame); resize.disconnect(); renderer.dispose(); };
   }, [audioBands, currentTime, isDaylight, mode, theme.backgroundColor]);
-  return <div ref={host} className="absolute inset-0 overflow-hidden" style={{ background: '#080c19' }}><canvas ref={canvas} className="absolute inset-0 h-full w-full" /></div>;
+  return <div ref={host} data-capture-solid className="absolute inset-0 overflow-hidden" style={{ background: '#080c19' }}><canvas ref={canvas} className="absolute inset-0 h-full w-full" /></div>;
 }

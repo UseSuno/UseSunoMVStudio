@@ -7,7 +7,8 @@
 // Split out of useSettingsUiStore.
 
 import { create } from 'zustand';
-import i18n from '../i18n/config';
+// Studio owns i18n initialization; never load Folia's standalone app bootstrap.
+import i18n from '../../../folia/i18n';
 import {
     DEFAULT_PLAYER_CONTROL_SLOT_PRIMARY,
     DEFAULT_PLAYER_CONTROL_SLOT_SECONDARY,

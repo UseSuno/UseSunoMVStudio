@@ -1,0 +1,2 @@
+# Patch context whitespace is part of the replayable upstream diff.
+scripts/folia-patches/*.patch -whitespace

@@ -1,0 +1,4 @@
+import { Check, ChevronDown, Languages } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { languages } from '../i18n';
+export function LanguagePicker() { const { i18n,t }=useTranslation(); const current=i18n.resolvedLanguage||i18n.language; const active=languages.find(([code])=>code===current)??languages[0]; return <details className="language-menu"><summary aria-label={t('language.label')} data-tooltip={t('language.label')}><Languages size={14}/><span>{active[1]}</span><ChevronDown size={11}/></summary><div className="language-popover" role="menu">{languages.map(([code,label])=><button role="menuitemradio" aria-checked={code===current} key={code} onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');void i18n.changeLanguage(code);}}><span>{label}</span>{code===current&&<Check size={13}/>}</button>)}</div></details>; }

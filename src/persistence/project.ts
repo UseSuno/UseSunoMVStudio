@@ -4,7 +4,13 @@ export interface SavedProject { project: Project; audio: Blob | null; font?: Blo
 function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => { const req = indexedDB.open('verse-studio', 1); req.onupgradeneeded = () => req.result.createObjectStore('projects'); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 }
-export async function saveLocal(saved: SavedProject) {
+let saveQueue: Promise<void> = Promise.resolve();
+export function saveLocal(saved: SavedProject): Promise<void> {
+  const next = saveQueue.catch(() => {}).then(() => writeLocal(saved));
+  saveQueue = next;
+  return next;
+}
+async function writeLocal(saved: SavedProject) {
   const db = await database();
   try { await new Promise<void>((resolve, reject) => { const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').put(saved, 'current'); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error); }); } finally { db.close(); }
 }
@@ -19,9 +25,10 @@ export function validateProject(value: unknown): Project {
   const finite = (n: unknown, min: number, max: number) => typeof n === 'number' && Number.isFinite(n) && n >= min && n <= max;
   if ((p.version as number) !== 1 && (p.version as number) !== 2) throw new Error('此工程版本暂不支持。');
   if (typeof p.title !== 'string' || p.title.length > 300 || typeof p.artist !== 'string' || p.artist.length > 300 || typeof p.source !== 'string' || p.source.length > 1e6 || typeof p.audioName !== 'string') throw new Error('工程元数据无效。');
-  if (!finite(p.duration, 0.1, 3600) || !finite(p.offset, -3600, 3600) || !finite(p.fontScale, 0.5, 1.7) || !finite(p.intensity, 0.3, 2) || !finite(p.seed, 0, 1e9)) throw new Error('工程参数超出支持范围。');
+  if (!(typeof p.duration === 'number' && Number.isFinite(p.duration) && p.duration > 0) || !finite(p.offset, -3600, 3600) || !finite(p.fontScale, 0.5, 1.7) || !finite(p.intensity, 0.3, 2) || !finite(p.seed, 0, 1e9)) throw new Error('工程参数超出支持范围。');
   const fonts = ['serif', 'sans', 'google', 'noto-serif-sc', 'noto-sans-sc', 'lxgw-wenkai', 'ma-shan-zheng', 'dm-sans', 'playfair-display', 'local'];
   if (!['article', 'flow', 'tilt', 'folia-fume', 'folia-classic', 'folia-partita', 'folia-cadenza', 'folia-tilt', 'folia-claddagh', 'folia-monet', 'folia-cappella', 'folia-diorama', 'folia-aurora', 'folia-curtain', 'folia-pendolo', 'folia-tempera', 'folia-sonnet', 'folia-still'].includes(p.template) || !['16:9', '9:16', '1:1'].includes(p.ratio) || !['paper', 'midnight', 'moss'].includes(p.palette) || !fonts.includes(p.font) || typeof p.estimatedReveal !== 'boolean') throw new Error('工程模板或画幅无效。');
+  if (p.autoIntro !== undefined && typeof p.autoIntro !== 'boolean') throw new Error('片头设置无效。');
   if (p.customFontName !== undefined && (typeof p.customFontName !== 'string' || p.customFontName.length > 200)) throw new Error('本地字体名称无效。');
   if (p.monetPortraitSource !== undefined && !['cover','custom'].includes(p.monetPortraitSource)) throw new Error('莫奈图片来源无效。');
   if (p.monetPortraitStyle !== undefined && !['square','rectangular'].includes(p.monetPortraitStyle)) throw new Error('莫奈图片比例无效。');
@@ -44,8 +51,10 @@ export function validateProject(value: unknown): Project {
     if (l.wordSegments !== undefined && (!Array.isArray(l.wordSegments) || l.wordSegments.length > 2000 || l.wordSegments.some(segment => typeof segment !== 'string') || l.wordSegments.join('') !== l.text)) throw new Error('歌词短语边界无效。');
   }
   const legacyBackground = p.template === 'folia-curtain' || (p.template === 'folia-aurora' && p.auroraBackground === 'curtain') ? 'aurora-curtain' : p.template === 'folia-aurora' ? 'aurora-nebula' : undefined;
-  const background = legacyBackground ?? (['common', 'latent', 'aurora-nebula', 'aurora-curtain'].includes(p.background) ? p.background : 'latent');
-  const migrated: Project = { ...p, version: 2, background, audioReactivity: p.audioReactivity ?? 'gentle', audioReactivityAmount: p.audioReactivityAmount ?? .7, temperaLayerImages: p.temperaLayerImages ?? [], monetPortraitSource: p.monetPortraitSource ?? 'cover', monetPortraitStyle: p.monetPortraitStyle ?? 'square', monetPortraitOffsetX: p.monetPortraitOffsetX ?? 0, monetAudioVisualization: p.monetAudioVisualization ?? true, monetAudioStyle: p.monetAudioStyle ?? 'bar', fontWeight: finite(p.fontWeight, 100, 900) ? p.fontWeight : 600 };
+  const hasBackground = ['common', 'latent', 'aurora-nebula', 'aurora-curtain'].includes(p.background);
+  const independentBackground = p.version === 2 && hasBackground && p.auroraBackground === undefined && p.template !== 'folia-curtain';
+  const background = independentBackground ? p.background : legacyBackground ?? (hasBackground ? p.background : 'latent');
+  const migrated: Project = { ...p, version: 2, background, autoIntro: p.autoIntro ?? true, audioReactivity: p.audioReactivity ?? 'gentle', audioReactivityAmount: p.audioReactivityAmount ?? .7, temperaLayerImages: p.temperaLayerImages ?? [], monetPortraitSource: p.monetPortraitSource ?? 'cover', monetPortraitStyle: p.monetPortraitStyle ?? 'square', monetPortraitOffsetX: p.monetPortraitOffsetX ?? 0, monetAudioVisualization: p.monetAudioVisualization ?? true, monetAudioStyle: p.monetAudioStyle ?? 'bar', fontWeight: finite(p.fontWeight, 100, 900) ? p.fontWeight : 600 };
   if (p.template === 'folia-curtain') migrated.template = 'folia-aurora';
   delete migrated.auroraBackground;
   if (['article','flow','tilt'].includes(p.template)) migrated.template = ({ article: 'folia-fume', flow: 'folia-classic', tilt: 'folia-tilt' } as const)[p.template as 'article' | 'flow' | 'tilt'];
@@ -54,20 +63,36 @@ export function validateProject(value: unknown): Project {
 export function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
-export async function downloadProject(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null, cover?: Blob | null, monetPortrait?: Blob | null) {
+export async function buildProjectArchive(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null, cover?: Blob | null, monetPortrait?: Blob | null): Promise<Blob> {
   const { zipSync, strToU8 } = await import('fflate');
-  const files: Record<string, Uint8Array> = { 'project.json': strToU8(JSON.stringify(project)) };
-  if (includeAudio && audio) files['audio.bin'] = new Uint8Array(await audio.arrayBuffer());
-  if (font) files['font.bin'] = new Uint8Array(await font.arrayBuffer());
-  if (cover) files['cover.bin'] = new Uint8Array(await cover.arrayBuffer());
-  if (monetPortrait) files['monet-portrait.bin'] = new Uint8Array(await monetPortrait.arrayBuffer());
-  const { getTemperaLayerImage } = await import('../vendor/folia/services/temperaLayerImages');
-  await Promise.all(project.temperaLayerImages.map(async image => { const stored = await getTemperaLayerImage(image.id); if (stored?.blob) files[`tempera/${encodeURIComponent(image.id)}`] = new Uint8Array(await stored.blob.arrayBuffer()); }));
-  const data = zipSync(files, { level: 0 }); downloadBlob(new Blob([data], { type: 'application/zip' }), `${project.title || '作品'}.lyricmv`);
+  const metadata = strToU8(JSON.stringify(project));
+  const blobs: Record<string, Blob> = {};
+  if (includeAudio && audio) blobs['audio.bin'] = audio;
+  if (font && project.font === 'local') blobs['font.bin'] = font;
+  if (cover) blobs['cover.bin'] = cover;
+  if (monetPortrait) blobs['monet-portrait.bin'] = monetPortrait;
+  if (project.temperaLayerImages.length) {
+    const { getTemperaLayerImage } = await import('../vendor/folia/services/temperaLayerImages');
+    await Promise.all(project.temperaLayerImages.map(async image => {
+      const stored = await getTemperaLayerImage(image.id);
+      if (!stored?.blob) throw new Error(`工程缺少图片：${image.name}`);
+      blobs[`tempera/${encodeURIComponent(image.id)}`] = stored.blob;
+    }));
+  }
+  // Check before allocating ArrayBuffers or a ZIP that this app cannot import again.
+  const total = metadata.byteLength + Object.values(blobs).reduce((sum, blob) => sum + blob.size, 0);
+  if (total > 199 * 1024 * 1024) throw new Error('工程素材超过 199 MB，请取消包含音频或减少图片后重试。');
+  const files: Record<string, Uint8Array> = { 'project.json': metadata };
+  await Promise.all(Object.entries(blobs).map(async ([name, blob]) => { files[name] = new Uint8Array(await blob.arrayBuffer()); }));
+  const data = zipSync(files, { level: 0 });
+  return new Blob([data], { type: 'application/zip' });
+}
+export async function downloadProject(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null, cover?: Blob | null, monetPortrait?: Blob | null) {
+  downloadBlob(await buildProjectArchive(project, audio, includeAudio, font, cover, monetPortrait), `${project.title || '作品'}.lyricmv`);
 }
 export async function readProject(file: File): Promise<SavedProject> {
   if (file.size > 200 * 1024 * 1024) throw new Error('工程文件超过 200 MB，请使用较小的素材。');
-  if (file.name.endsWith('.json')) return { project: validateProject(JSON.parse(await file.text())), audio: null };
+  if (file.name.toLowerCase().endsWith('.json')) return { project: validateProject(JSON.parse(await file.text())), audio: null };
   const { unzipSync, strFromU8 } = await import('fflate');
   let total = 0;
   const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: f => { total += f.originalSize; if (total > 250 * 1024 * 1024) throw new Error('工程解压大小超出限制。'); return f.name === 'project.json' || f.name === 'audio.bin' || f.name === 'font.bin' || f.name === 'cover.bin' || f.name === 'monet-portrait.bin' || f.name.startsWith('tempera/'); } });

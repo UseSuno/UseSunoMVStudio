@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { deferStagePresentation, isLayeredPresentation } from '../../../../../folia/presentation';
 // Vendored from Folia (AGPL-3.0); see THIRD_PARTY_NOTICES.md.
 import type { MotionValue } from 'framer-motion';
 import type { TemperaTuning, Theme } from '../../../types';
@@ -233,6 +234,10 @@ export class TemperaPixiRuntime {
             // buffer the WebGL renderer skips the whole filter stack for that container.
             useBackBuffer: true,
         });
+        const present = app.render.bind(app);
+        app.ticker.remove(app.render, app);
+        app.render = () => { if (!deferStagePresentation()) present(); };
+        app.ticker.add(app.render, app, pixi.UPDATE_PRIORITY.LOW);
         const runtime = new TemperaPixiRuntime(pixi, options, app);
         runtime.sceneContainer = new pixi.Container();
         // Paragraph scenes overlap during a boundary, so they must stack by paragraph order.
@@ -249,13 +254,19 @@ export class TemperaPixiRuntime {
             runtime.destroy();
             throw new DOMException('Tempera runtime creation was cancelled', 'AbortError');
         }
+        app.canvas.dataset.captureReady = 'false';
         options.host.appendChild(app.canvas);
         app.canvas.style.cssText = 'width:100%;height:100%;display:block';
         runtime.install();
         return runtime;
     }
 
+    // The retained output is from the final clock update. Preserve the original
+    // capture-time state update, without rasterizing another unused GPU frame.
+    private captureFrame = () => { if (isLayeredPresentation()) this.renderFrame(); else this.renderOnce(); };
+
     private install() {
+        this.options.host.ownerDocument.defaultView?.addEventListener('verse:before-capture', this.captureFrame);
         this.resizeToHost();
         this.app.ticker.add(this.renderFrame);
         this.resizeObserver = new ResizeObserver(() => {
@@ -264,6 +275,7 @@ export class TemperaPixiRuntime {
         });
         this.resizeObserver.observe(this.options.host);
         this.renderOnce();
+        this.app.canvas.dataset.captureReady = 'true';
         if (!this.options.paused) this.app.start();
     }
 
@@ -1007,6 +1019,7 @@ export class TemperaPixiRuntime {
     }
 
     destroy() {
+        this.options.host.ownerDocument.defaultView?.removeEventListener('verse:before-capture', this.captureFrame);
         if (this.destroyed) return;
         this.destroyed = true;
         // Release whoever is awaiting the handover before tearing the app down, otherwise that

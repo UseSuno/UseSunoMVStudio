@@ -15,6 +15,7 @@ import { getSizedCoverUrl } from '../../utils/coverUrl';
 // so each renderer can stay focused on lyric timing/layout instead of rebuilding the same frame.
 type VisualizerShellSharedProps = Pick<
     VisualizerSharedProps,
+    | 'currentTime'
     | 'coverUrl'
     | 'isDaylight'
     | 'seed'
@@ -180,7 +181,8 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
             )}
 
             {renderBackground && (
-                <VisualizerBackgroundRenderer
+                <div data-capture-background style={{ display: 'contents' }}><VisualizerBackgroundRenderer
+                    currentTime={sharedProps?.currentTime}
                     config={sharedProps?.background}
                     theme={theme}
                     isDaylight={resolvedIsDaylight}
@@ -190,7 +192,7 @@ const VisualizerShell = forwardRef<HTMLDivElement, VisualizerShellProps>(({
                     seed={sharedProps?.seed}
                     staticMode={resolvedStaticMode || resolvedBackgroundStaticMode}
                     paused={resolvedPaused}
-                />
+                /></div>
             )}
 
             {children}

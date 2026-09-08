@@ -11,6 +11,7 @@ import { getLineRenderEndTime, getLineRenderHints } from '../../../utils/lyrics/
 import { shouldPreheatLine, useVisualizerRuntime, type VisualizerPreheatWindow } from '../runtime';
 import { type VisualizerSharedProps } from '../definition';
 import VisualizerShell from '../VisualizerShell';
+import { LyricSafeFrame } from '../LyricSafeFrame';
 import VisualizerSubtitleOverlay from '../VisualizerSubtitleOverlay';
 import { resolveWordColor } from '../wordColoring';
 import { resolveThemeFontWeight } from '../../../utils/fontStacks';
@@ -416,6 +417,7 @@ const PartitaWord: React.FC<{
             variants={layoutVariants}
             initial="waiting"
             animate={status}
+            data-lyric-bounds
             className="inline-block origin-center relative will-change-transform whitespace-nowrap"
             style={{
                 fontSize,
@@ -958,6 +960,7 @@ const VisualizerPartita: React.FC<VisualizerPartitaProps> = (props) => {
                 animate={lyricContainerFloat.animate}
                 transition={lyricContainerFloat.transition}
             >
+                <LyricSafeFrame layoutKey={`${activeLine?.startTime}-${activeLine?.words.map(word => word.text).join(" ")}-${lyricsFontScale}-${theme.fontFamily}-${theme.animationIntensity}`}>
                 <AnimatePresence mode="popLayout">
                     {showText && activeLine && activeLineRenderProfile && (
                         <motion.div
@@ -1021,6 +1024,7 @@ const VisualizerPartita: React.FC<VisualizerPartitaProps> = (props) => {
                         </motion.div>
                     )}
                 </AnimatePresence>
+                </LyricSafeFrame>
             </motion.div>
 
             <VisualizerSubtitleOverlay

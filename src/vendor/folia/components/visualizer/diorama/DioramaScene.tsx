@@ -1,5 +1,6 @@
 // @ts-nocheck
 // Vendored from Folia (AGPL-3.0); see THIRD_PARTY_NOTICES.md.
+import { resolveFrameFitScale } from './frameFit';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { type MotionValue } from 'framer-motion';
@@ -167,13 +168,7 @@ const resolveOutgoingLineOpacity = (offsetFromOutgoing: number): number =>
 // Nominal world size of one em of lyric text. A line is always exactly one row (the rasteriser never
 // wraps); longer lines are shrunk to fit via the frame-fit scale below.
 const LINE_FONT_SIZE = 0.62;
-// Fraction of the visible frame width a full line may occupy AT THE HERO DISTANCE. The fit scale is
-// computed against this FIXED reference distance, not the live camera distance, so the camera
-// approaching/passing a line genuinely grows/foreshortens it (real dolly motion).
-const TARGET_FRAME_WIDTH_FRACTION = 0.72;
-// Floor for the fit scale so an extremely long line becomes small-but-readable instead of vanishing.
-const MIN_FIT_SCALE = 0.28;
-const DEG_TO_RAD = Math.PI / 180;
+
 // Fog band: far enough to keep the hero line and its formation crisp, near enough that the +3 line
 // and its set-piece are born inside the haze (the lifecycle fade and the fog work together).
 const FOG_NEAR = 12;
@@ -314,20 +309,6 @@ export const resolveTextLife = (distanceToCamera: number): number => {
     return (farT * farT * (3 - 2 * farT)) * (nearT * nearT * (3 - 2 * nearT));
 };
 
-// Uniform scale that shrinks a rendered line so it occupies at most TARGET_FRAME_WIDTH_FRACTION of
-// the visible frame width at `distance`. three.js `fov` is the VERTICAL field of view.
-const resolveFrameFitScale = (
-    renderedWidth: number,
-    distance: number,
-    verticalFovDeg: number,
-    aspect: number
-): number => {
-    if (renderedWidth <= 0 || distance <= 0) return 1;
-    const frameWidth = 2 * distance * Math.tan((verticalFovDeg * DEG_TO_RAD) / 2) * aspect;
-    const targetWidth = frameWidth * TARGET_FRAME_WIDTH_FRACTION;
-    return Math.min(1, Math.max(MIN_FIT_SCALE, targetWidth / renderedWidth));
-};
-
 // Gradient colour temporaries (no per-frame alloc), all derived live from the theme's damped colours
 // so a manual/AI theme switch re-colours the gradient automatically. _sungTint = the theme accent,
 // made hue-safe when the palette is degenerate (see useFrame); _gradDeep = a darker, HUE-PRESERVING
@@ -428,6 +409,7 @@ const DioramaScene: React.FC<DioramaSceneProps> = ({
     gradientIntensity,
     keywordColoringEnabled,
 }) => {
+    const captureCanvas = useThree((state) => state.gl.domElement);
     // Neighbour line planes (one rasterised texture per line) - meshes for the fit scale, materials
     // for per-frame colour/opacity. Keyed by GLOBAL line index (which grows without bound across the
     // continuous tunnel), so Maps rather than arrays - entries are added/removed as the window moves.
@@ -791,6 +773,7 @@ const DioramaScene: React.FC<DioramaSceneProps> = ({
         });
         const missing: number[] = [];
         wanted.forEach((index) => { if (!cache.has(index)) missing.push(index); });
+        captureCanvas.dataset.captureReady = missing.length ? 'false' : 'true';
         if (missing.length === 0) {
             if (changed) bumpNeighborTick((v) => v + 1);
             return undefined;
@@ -808,6 +791,7 @@ const DioramaScene: React.FC<DioramaSceneProps> = ({
             }
             bumpNeighborTick((v) => v + 1);
             if (qi < missing.length) rafId = requestAnimationFrame(buildBatch);
+            else captureCanvas.dataset.captureReady = 'true';
         };
         rafId = requestAnimationFrame(buildBatch);
         return () => { cancelled = true; if (rafId) cancelAnimationFrame(rafId); };
@@ -938,7 +922,7 @@ const DioramaScene: React.FC<DioramaSceneProps> = ({
             const raster = lineRasterCacheRef.current.get(index);
             if (!mesh || !mat || !raster) return;
             const worldWidth = raster.advancePx * (LINE_FONT_SIZE / raster.fontPx);
-            const fit = resolveFrameFitScale(worldWidth, DIORAMA_HERO_DISTANCE, fov, aspect) * placement.scale * lyricsFontScale;
+            const fit = resolveFrameFitScale(worldWidth * placement.scale * lyricsFontScale, DIORAMA_HERO_DISTANCE, fov, aspect) * placement.scale * lyricsFontScale;
             mesh.scale.setScalar(fit);
             const life = resolveTextLife(mesh.position.distanceTo(camPos));
             if (isOutgoing) {
@@ -978,7 +962,7 @@ const DioramaScene: React.FC<DioramaSceneProps> = ({
             unitSoulMeshRefs.current.length = activeLineUnits.length;
         }
         if (unitsGroup && activeUnitsRaster && activeEntry && activeLine) {
-            const fit = resolveFrameFitScale(activeUnitsRaster.lineWidth, DIORAMA_HERO_DISTANCE, fov, aspect)
+            const fit = resolveFrameFitScale(activeUnitsRaster.lineWidth * activeEntry.placement.scale * lyricsFontScale, DIORAMA_HERO_DISTANCE, fov, aspect)
                 * activeEntry.placement.scale * lyricsFontScale;
             unitsGroup.scale.setScalar(fit);
             // Publish the active line's world width so CameraRig sizes its word-following truck.
