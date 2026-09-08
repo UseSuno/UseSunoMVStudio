@@ -2,7 +2,35 @@
 /* Keep desktop editing surfaces within one viewport; each panel owns its scroll. */
 @media(min-width:901px){.studio{height:100dvh;min-height:0}.workspace{overflow:hidden;min-height:0}.inspector{overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3e4a35 transparent}.left-panel{overflow:hidden}.lyric-list{max-height:none;min-height:0}.center-panel{min-height:0;overflow:hidden}.stage-surround{min-height:0}.stage-surround canvas,.stage-surround.ratio-9-16 canvas,.stage-surround.ratio-1-1 canvas{position:absolute;width:100%;height:100%;max-height:none;min-height:0;object-fit:contain}.workspace-title{padding-top:21px;padding-bottom:9px}.transport{height:58px}.timeline{padding-bottom:10px}.inspector .panel-title{padding-top:18px}.inspector-section{padding-top:14px;padding-bottom:14px}}
 .export-video{display:block;width:100%;max-height:210px;background:#101510;border-radius:5px;margin-top:12px}.modal{max-height:calc(100dvh - 30px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#5e7350 transparent}
-.folia-stage-host{position:absolute;inset:0;overflow:hidden;background:#0d1424}.folia-stage-frame{position:absolute;left:50%;top:50%;border:0;transform-origin:center center;max-width:none}.stage-surround .folia-stage-frame{pointer-events:auto}@media(max-width:900px){.folia-stage-host{position:relative;width:100%;aspect-ratio:16/9}.ratio-9-16 .folia-stage-host{aspect-ratio:9/16;max-height:460px}.ratio-1-1 .folia-stage-host{aspect-ratio:1/1;max-height:460px}}
+.folia-stage-host{position:absolute;inset:0;overflow:hidden;background:#0d1424}.folia-stage-frame{position:absolute;left:50%;top:50%;border:0;transform-origin:center center;max-width:none}.stage-surround .folia-stage-frame{pointer-events:auto}
+.app-menu:not([open]) .app-menu-popover{display:none}
+.stage-toolbar{height:auto;min-height:44px;flex-shrink:0;flex-wrap:wrap;gap:8px}
+.stage-view-controls{display:flex;align-items:center;gap:10px;min-width:0}
+.stage-ratio-options{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+.stage-ratio-options button{min-width:44px;min-height:30px;padding:4px 8px;font-size:12px;white-space:nowrap}
+.stage-ratio-options button[aria-pressed=true]{background:var(--accent);color:#23321d;font-weight:600}
+.stage-fit-label{font-size:11px}
+@media(max-width:620px){
+  .inspector{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .inspector-section{min-width:0}
+  .app-menu:nth-last-child(-n+3) .app-menu-popover{left:auto;right:0}
+  .stage-toolbar{min-height:52px;gap:6px;padding:4px 0}
+  .stage-toolbar>span:first-child{font-size:10px;min-width:0}
+  .stage-view-controls{gap:6px}
+  .stage-ratio-options button{min-height:40px;padding:4px 7px}
+  .stage-toolbar>span:first-child{flex:1;order:0;line-height:1.3}
+  .stage-toolbar>.icon-button{order:2}
+  .stage-view-controls{order:1;flex:none}
+  .stage-fit-label{display:none}
+  .stage-toolbar .icon-button{width:40px;height:40px;flex-shrink:0}
+  .stage-fit-label{max-width:100px;line-height:1.3}
+}
+/* In the scrolling mobile layout, derive height from width instead of an auto-height size container. */
+@media(max-width:900px){
+  .stage-frame-slot{container-type:normal;flex:0 0 auto;min-height:0}
+  .stage-surround{width:min(100%,calc(460px * var(--ratio-width) / var(--ratio-height)));height:auto;min-height:0}
+  .stage-surround canvas,.stage-surround.ratio-9-16 canvas,.stage-surround.ratio-1-1 canvas{position:absolute;inset:0;width:100%;height:100%;min-height:0;max-height:none}
+}
 .recording-folia dialog:not(.recording-dialog){visibility:hidden}.recording-folia dialog::backdrop{background:transparent;backdrop-filter:none}
 .reread-lyrics{margin:-9px 16px 12px;padding:4px;color:#a8bd94;font-size:10px}
 
@@ -165,3 +193,28 @@ html[data-ui-theme="light"] .export-dialog .export-preflight{background:transpar
 .recording-hud progress{display:block;width:100%;height:5px;accent-color:var(--accent)}
 .recording-hud p{margin:8px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
 @media(max-height:480px){.realtime-recording .stage-surround{top:12px;height:min(calc(100dvh - 175px),calc((100vw - 32px) * var(--ratio-height) / var(--ratio-width)));width:min(calc(100vw - 32px),calc((100dvh - 175px) * var(--ratio-width) / var(--ratio-height)))}.recording-hud{padding:8px 12px}.recording-hud p{display:none}}
+
+/* Phone settings need a full-width row for localized labels and asset controls. */
+@media(max-width:620px){
+  .workspace>.inspector{grid-template-columns:minmax(0,1fr);min-width:0;width:100%}
+  .inspector .inspector-section{grid-column:1;min-width:0;max-width:100%;border-right:0}
+  .inspector .section-label{flex-wrap:wrap;gap:6px;overflow-wrap:anywhere}
+  .inspector .section-label>span{min-width:0}
+  .inspector button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+  .inspector .template-current{width:100%;min-width:0}
+  .inspector .template-copy{min-width:0}
+  .inspector .background-list button{width:100%}
+}
+
+/* Keep foreground contrast on the darker light-theme accent. */
+html[data-ui-theme="light"] .brand-symbol,
+html[data-ui-theme="light"] .welcome-mark,
+html[data-ui-theme="light"] .stage-ratio-options button[aria-pressed=true]{color:#fff}
+html[data-ui-theme="light"] .stage-ratio-options button[aria-pressed=true]:hover{background:var(--accent);color:#fff}
+@media(max-width:620px){
+  .stage-toolbar{gap:8px;min-height:56px;padding:6px 0}
+  .stage-ratio-options{padding:2px;gap:1px;border-radius:8px}
+  .stage-ratio-options button{min-width:40px;min-height:36px;padding:4px 6px;font-size:11px;border-radius:5px}
+  .stage-toolbar>.icon-button{width:36px;min-width:36px;height:40px}
+  .stage-toolbar>span:first-child{gap:5px;font-size:9px}
+}
