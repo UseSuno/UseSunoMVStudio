@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { canCompositeProject, canExportFrames, regionCaptureAvailable } from '../src/export/capabilities';
+import { canCompositeProject, canExportFrames, recommendsFrameExport, regionCaptureAvailable } from '../src/export/capabilities';
 import { introDirection, introLineLeft } from '../src/folia/introDirection';
 import { dioramaLyricsSignature } from '../src/vendor/folia/components/visualizer/diorama/lyricsSignature';
 import type { Line } from '../src/vendor/folia/types';
@@ -16,6 +16,12 @@ describe('export capability and media clock contract', () => {
     }
     expect(canExportFrames({ template: 'folia-classic', background: 'latent' })).toBe(true);
     expect(canExportFrames({ template: 'folia-partita', background: 'common' })).toBe(true);
+  });
+  it('recommends offline export only for measured fast combinations', () => {
+    expect(recommendsFrameExport({ template: 'folia-fume', background: 'latent' })).toBe(true);
+    expect(recommendsFrameExport({ template: 'folia-tilt', background: 'latent' })).toBe(true);
+    expect(recommendsFrameExport({ template: 'folia-tilt', background: 'aurora-nebula' })).toBe(false);
+    expect(recommendsFrameExport({ template: 'folia-cadenza', background: 'latent' })).toBe(false);
   });
   it('preflights the crop API as well as screen sharing', () => {
     const scope = { CropTarget: { fromElement() {} }, navigator: { mediaDevices: { getDisplayMedia() {} } } };

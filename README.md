@@ -65,15 +65,15 @@ These options appear only in the frame-by-frame export of Folia templates. Names
 
 | Method | Applies to | Description |
 | --- | --- | --- |
-| Standard capture | All Folia templates | The default; captures the original web animation. |
-| Layered capture (experimental) | All Folia templates can try it | Grabs the original canvases and the text layer separately, handing composition and encoding to a separate thread that overlaps with the next frame capture. Unsupported scenes fall back to the standard method. |
-| Browser-native capture (experimental) | Requires a browser experiment | Uses HTML-in-Canvas to capture the existing DOM; falls back to the standard method when unavailable or on failure. |
+| Layered capture (experimental) | All Folia templates can try it | Grabs original canvases and the DOM foreground separately, then hands composition and encoding to a Worker. Speed varies by scene. An unsupported scene stops with a prompt to use real-time recording. |
 | Direct canvas capture (experimental) | Fume with Fluid light only | Composites the original canvases directly, skipping the DOM screenshot. |
 | Parallel canvas rendering (experimental) | Fume with Fluid light only | Uses the drawing core shared with the preview to render lyrics, composite, and encode in a separate thread. |
 
-Most combinations therefore show **3 methods**, and Fume with Fluid light shows **5**. The separate-thread options require Worker and OffscreenCanvas support. Native capture requires a compatible Chromium browser with `chrome://flags/#canvas-draw-element` enabled and a restart; an option being offered does not mean the browser already supports the API.
+Most combinations show **one frame-capture method**, and Fume with Fluid light can show **three**. A single available method is shown without a dropdown. Layered and parallel rendering require Worker and OffscreenCanvas support; when no suitable frame path is available, the dialog selects real-time recording.
 
 Experimental paths keep the original resolution, frame rate, and bitrate, but may show subtle color or text rasterization differences — verify against the preview. Layered capture temporarily hides the editor preview and restores it when the export ends or is canceled. The separate thread does not replace all main-thread work, and switching tabs still pauses. Parallel canvas rendering verifies font measurements; on mismatch it stops and suggests direct capture instead of silently substituting fonts.
+
+Tilt adds a **Reuse text images (experimental)** checkbox under Layered capture. It caches the template's existing independently animated text units at export resolution, then composites their positions, scales and nested opacity. It does not split lyrics again. Fully transparent groups are skipped. New text rasters are cropped to nonzero-alpha bounds with a transparent filtering border, retaining their export-space positions and scale. The cache budget counts cropped surfaces; up to four new rasters are prepared concurrently to bound temporary memory. Unsupported effects or oversized local surfaces use the existing layered text snapshot; resolution and duration are not reduced. It is enabled by default only for Tilt with Fluid light, the measured combination; users can disable it for comparison.
 
 Entry points: [src/export/foliaFrames.ts](src/export/foliaFrames.ts), [src/folia/layeredCapture.ts](src/folia/layeredCapture.ts), and [src/export/fumeRender.worker.ts](src/export/fumeRender.worker.ts).
 
@@ -136,7 +136,7 @@ npm run build
 git diff --check
 ```
 
-These checks validate code, patches, and build artifacts; they do not replace acceptance on real songs for visuals, audio sync, cancel and resume, and browser compatibility. Experimental capture options are off by default, and narrow benchmark results must not be presented as speed promises on all devices.
+These checks validate code, patches, and build artifacts; they do not replace acceptance on real songs for visuals, audio sync, cancel and resume, and browser compatibility. Narrow benchmark results must not be presented as speed promises on all devices.
 
 ## Updating Folia
 
@@ -163,3 +163,31 @@ This project is released under **AGPL-3.0-only**; see [LICENSE](LICENSE) for the
 The app includes derivative source code from [Folia](https://github.com/chthollyphile/folia-major); per-file provenance and hashes are recorded in the upstream manifest. Third-party code, assets, and dependencies are described in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the `legal/dependency-notices.txt` generated at build time. When deploying or redistributing, keep the applicable licenses, notices, and corresponding-source entry points.
 
 Google Fonts are subject to their own licenses; before importing or bundling local fonts, audio, images, or lyrics, confirm you have the rights to use and distribute them. A software license does not grant rights to third-party material.
+
+
+### Export strategy
+
+The Studio exposes two product-level choices. Real-time recording is the reliable
+fallback and preserves the browser-rendered animation. Layered frame export remains
+available for every Folia template, but its speed depends heavily on the template,
+background, font and device. The app recommends it by default only for combinations
+that completed faster than playback in representative real-song tests.
+
+Layered export separates Canvas surfaces from DOM foreground content, composites
+transferable bitmaps in a Worker and sends fixed-timestamp frames to the video
+encoder. This removes real-time waiting and keeps audio timestamps deterministic.
+It does not move DOM layout or CSS-to-image rasterization into a Worker. Templates
+whose lyrics change DOM styles every frame can therefore remain slower than
+real-time recording even when composition and encoding are fast.
+
+Tilt can optionally reuse browser-rasterized text images while updating supported
+motion through composition parameters. The resource store has bounded memory,
+explicit bitmap ownership and cleanup on completion or cancellation. Unsupported
+effects use the original Layered DOM foreground. The abandoned Cadenza atlas
+experiment was removed after it performed substantially worse than the normal
+Layered path.
+
+Do not add a template-specific fast path without a bounded comparison against the
+current Layered exporter and a visual/audio-sync check. Prefer a shared Canvas or
+text-resource adapter; keep real-time recording as the fallback when browser DOM
+rasterization remains the limiting step.

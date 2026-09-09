@@ -5,5 +5,6 @@ export const privacyUrl = '/privacy.html';
 export const licensesUrl = '/licenses.html';
 export const upstreamFoliaUrl = 'https://github.com/chthollyphile/folia-major';
 export const homeUrl = 'https://usesuno.com/';
+export const mvStudioGuideUrl = 'https://usesuno.com/articles/how-to-use-usesuno-mv-studio/';
 export const contactUrl = 'mailto:contact@usesuno.com';
 export const feedbackUrl = 'mailto:contact@usesuno.com?subject=MV%20Studio%20feedback';

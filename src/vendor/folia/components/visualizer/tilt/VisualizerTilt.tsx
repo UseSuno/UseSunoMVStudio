@@ -454,6 +454,7 @@ const TiltLine: React.FC<{
                     return (
                         <motion.span
                             key={ti}
+                        data-tilt-cache-unit="glyph"
                             initial={{ opacity: 0 }}
                             animate={visible ? {
                                 opacity: 1,
@@ -507,6 +508,7 @@ const TiltLine: React.FC<{
                 return (
                     <motion.span
                         key={ti}
+                        data-tilt-cache-unit="glyph"
                         initial={{
                             opacity: 0,
                             y: isSpace ? 0 : yStagger * yOffset * 2,
@@ -641,6 +643,7 @@ const VisualizerTilt: React.FC<VisualizerTiltProps & { staticMode?: boolean; }> 
                     {showText && activeLine && layout ? (
                         <motion.div
                             key={`tilt-${activeLine.startTime}`}
+                            data-tilt-cache-group="sentence"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, transition: { duration: 0.45, ease: 'easeInOut' } }}

@@ -1,3 +1,4 @@
+import { layerBitmaps } from '../folia/layerPackets';
 import type { LayeredFrame } from '../folia/layeredCapture';
 import { visibleTimeout } from './visibility';
 import type { FumeWorkerFrame } from '../folia/workerCapture';
@@ -43,13 +44,13 @@ export class FumeExportWorker {
     });
   }
   add(frame: FumeWorkerFrame, timestamp: number, duration: number, audioData: Float32Array, sampleRate: number, channels: number) {
-    return this.request('frame', { frame, timestamp, duration, audioData, sampleRate, channels }, [...frame.layers.flatMap(layer => layer.source ? [layer.source] : []), audioData.buffer]).catch(error => { frame.layers.forEach(layer => layer.source?.close()); throw error; });
+    return this.request<Record<string, number>>('frame', { frame, timestamp, duration, audioData, sampleRate, channels }, [...frame.layers.flatMap(layer => layer.source ? [layer.source] : []), audioData.buffer]).catch(error => { frame.layers.forEach(layer => layer.source?.close()); throw error; });
   }
   addLayers(frame: LayeredFrame, timestamp: number, duration: number, audioData: Float32Array, sampleRate: number, channels: number) {
-    return this.request('layers', { frame, timestamp, duration, audioData, sampleRate, channels }, [...frame.layers.flatMap(layer => layer.source ? [layer.source] : []), audioData.buffer]).catch(error => { frame.layers.forEach(layer => layer.source?.close()); throw error; });
+    return this.request<Record<string, number>>('layers', { frame, timestamp, duration, audioData, sampleRate, channels }, [...layerBitmaps(frame.layers), audioData.buffer]).catch(error => { layerBitmaps(frame.layers).forEach(source => source.close()); throw error; });
   }
   addBitmap(bitmap: ImageBitmap, timestamp: number, duration: number, audioData: Float32Array, sampleRate: number, channels: number) {
-    return this.request('bitmap', { bitmap, timestamp, duration, audioData, sampleRate, channels }, [bitmap, audioData.buffer]).catch(error => { bitmap.close(); throw error; });
+    return this.request<Record<string, number>>('bitmap', { bitmap, timestamp, duration, audioData, sampleRate, channels }, [bitmap, audioData.buffer]).catch(error => { bitmap.close(); throw error; });
   }
   dispose() { for (const finish of this.pending) finish(new Error('Export worker disposed.')); this.worker.terminate(); }
 }

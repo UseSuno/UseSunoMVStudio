@@ -13,11 +13,18 @@ const supportedBlend = new Set(['normal', 'source-over', 'multiply', 'screen', '
 export function readPaintLayers(root: Element): PaintLayer[] {
   const view = root.ownerDocument.defaultView!;
   const layers: PaintLayer[] = [];
+  // Ancestors are shared by several surfaces; read each style once per capture.
+  const styles = new Map<Element, CSSStyleDeclaration>();
+  const styleFor = (element: Element) => {
+    let style = styles.get(element);
+    if (!style) { style = view.getComputedStyle(element); styles.set(element, style); }
+    return style;
+  };
   const visit = (element: Element) => {
     if (element.tagName === 'CANVAS' || element.hasAttribute('data-capture-solid')) {
       let opacity = 1, blend = 'source-over', filters: string[] = [];
       for (let node: Element | null = element; node; node = parent(node)) {
-        const style = view.getComputedStyle(node);
+        const style = styleFor(node);
         if (style.display === 'none' || style.visibility === 'hidden') { opacity = 0; break; }
         opacity *= Number(style.opacity);
         if (style.mixBlendMode !== 'normal') {
@@ -35,7 +42,7 @@ export function readPaintLayers(root: Element): PaintLayer[] {
       const canvas = element.tagName === 'CANVAS' ? element as HTMLCanvasElement : null;
       if (!canvas || (canvas.width > 0 && canvas.height > 0)) layers.push({
         source: canvas ?? undefined,
-        color: canvas ? undefined : view.getComputedStyle(element).backgroundColor,
+        color: canvas ? undefined : styleFor(element).backgroundColor,
         x: rect.left, y: rect.top, width: rect.width, height: rect.height,
         opacity, blend: blend as GlobalCompositeOperation, filter: filters.join(' ') || 'none',
       });

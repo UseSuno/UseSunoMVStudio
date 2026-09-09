@@ -4,7 +4,7 @@
   "patches": [
     {
       "file": "studio.patch",
-      "sha256": "e71655fc05f2a4d4b8060e2d3ae404d7b4585e4978ce77e8ed7aaeb33e94442a"
+      "sha256": "38d2ab26c2bfac8d1306290c90acce15d9d13d1487d35bcd9ab6f1cccc96da5f"
     }
   ],
   "files": {
@@ -181,7 +181,7 @@
     "components/visualizer/sonnet/sonnetTexturePool.ts": "bad871f715e556ca394da53272fbc94b99f3e1e981ac32a523ccae5c1fa72075",
     "components/visualizer/sonnet/sonnetThemedShotMg.ts": "04e36f88264240293d65a77697d8fd601b1bb43d1f3567d995a0c88ab497b2ad",
     "components/visualizer/sonnet/sonnetThemedShotMgPrimitives.ts": "71d5a45b03ad10abd79f56fd03af64d659defd30b1b905c7425b2dd6a5844f14",
-    "components/visualizer/sonnet/sonnetTransitions.ts": "aa8ce0c8c783e739f0b2cf1a1af70751a32c475d02fce3605a67d78d82941189",
+    "components/visualizer/sonnet/sonnetTransitions.ts": "081377b9dd76d701ab840748628e17d1ae7b8bdfc6b35fec37bb7b659e8d3cde",
     "components/visualizer/sonnet/sonnetTypographyLayout.ts": "0f47337196c3985eb69f96e8ed9ca1b2e068bd980725bd4e2e5fcfa8e70e9621",
     "components/visualizer/sonnet/sonnetTypographyRoles.ts": "e2ddbaff039ca8e5b870888e81561ab8cd899ae0bf54319ed4d197d39a64f49a",
     "components/visualizer/sonnet/tuning.ts": "05ded38c74c9c5dce4df569f5547a0438380112c5587c97d0f473582ea0ce893",
@@ -228,7 +228,7 @@
     "components/visualizer/tempera/temperaTransitions.ts": "a1eeab29d0d8d866b1d7332d6e8cf59e86c50fda1148dd8515ff1b661c3fa1b6",
     "components/visualizer/tempera/tuning.ts": "ff0424b14092ec8ad33d03e5d9fa5b619584984a4a03530f0e2c658c4bc5c13a",
     "components/visualizer/tempera/types.ts": "8f45e41e271d5f37e45e1583ec23b060208e459eaf8e6a083bba697ecc47f330",
-    "components/visualizer/tilt/VisualizerTilt.tsx": "1862e5abe47cf46b8698b33605cd0c919c2461b28ae75d8389997e8ed025dfdc",
+    "components/visualizer/tilt/VisualizerTilt.tsx": "8aef914d945eab968b9e0ec879de9889564a139558d43349e04f136d406d2ea4",
     "components/visualizer/tilt/tuning.ts": "7e00f9a7ca0840f448942dc5c7c490ab6a5424ea026452f2dd66a50c71fb4923",
     "components/visualizer/tuningRegistry.ts": "af5f4315b10a598d7504bc0a9de198d6b184ca65011f36a697d00c0f79bfadf9",
     "components/visualizer/wordColoring.ts": "7f478b3e2cd44751173cb75ecc345d99b1cd921e1ef6023bdfc3976506dcb844",

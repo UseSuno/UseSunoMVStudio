@@ -7,11 +7,11 @@ import type { Project } from '../domain/model';
 import { compileProject } from '../renderer/compile';
 import { drawFrame } from '../renderer/draw';
 // Offline frame generation uses the same renderer as the editor.
-export interface ExportOptions { captureMethod?: 'standard' | 'native' | 'direct' | 'worker' | 'layered'; height: number; fps: number; start: number; end: number; format: 'mp4' | 'webm' }
+export interface ExportOptions { textCache?: boolean; captureMethod?: 'standard' | 'native' | 'direct' | 'worker' | 'layered'; height: number; fps: number; start: number; end: number; format: 'mp4' | 'webm' }
 export async function supportedFormats(width: number, height: number, buffer: AudioBuffer) {
   const [avc, aac, vp9, opus] = await Promise.all([
-    canEncodeVideo('avc', { width, height, bitrate: 8_000_000 }), canEncodeAudio('aac', { sampleRate: buffer.sampleRate, numberOfChannels: buffer.numberOfChannels }),
-    canEncodeVideo('vp9', { width, height, bitrate: 8_000_000 }), canEncodeAudio('opus', { sampleRate: buffer.sampleRate, numberOfChannels: buffer.numberOfChannels }),
+    canEncodeVideo('avc', { width, height, bitrate: height >= 1080 ? 10_000_000 : 5_000_000 }), canEncodeAudio('aac', { sampleRate: buffer.sampleRate, numberOfChannels: buffer.numberOfChannels }),
+    canEncodeVideo('vp9', { width, height, bitrate: height >= 1080 ? 10_000_000 : 5_000_000 }), canEncodeAudio('opus', { sampleRate: buffer.sampleRate, numberOfChannels: buffer.numberOfChannels }),
   ]);
   return { mp4: avc && aac, webm: vp9 && opus };
 }

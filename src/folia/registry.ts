@@ -5,28 +5,28 @@ import type { VisualizerSharedProps } from '../vendor/folia/components/visualize
 export interface StudioVisualizerEntry {
   id: TemplateId;
   renderer: LazyExoticComponent<ComponentType<VisualizerSharedProps>>;
-  fastExport: boolean;
+  frameExport: boolean;
   usesWordSegmentation?: boolean;
 }
 
 const entries: StudioVisualizerEntry[] = [
-  { id: 'folia-fume', renderer: lazy(() => import('../vendor/folia/components/visualizer/fume/VisualizerFume')), fastExport: true },
-  { id: 'folia-classic', renderer: lazy(() => import('../vendor/folia/components/visualizer/classic/Visualizer')), fastExport: true, usesWordSegmentation: true },
-  { id: 'folia-partita', renderer: lazy(() => import('../vendor/folia/components/visualizer/partita/VisualizerPartita')), fastExport: true, usesWordSegmentation: true },
-  { id: 'folia-cadenza', renderer: lazy(() => import('../vendor/folia/components/visualizer/cadenza/VisualizerCadenza')), fastExport: true },
-  { id: 'folia-tilt', renderer: lazy(() => import('../vendor/folia/components/visualizer/tilt/VisualizerTilt')), fastExport: true },
-  { id: 'folia-claddagh', renderer: lazy(() => import('../vendor/folia/components/visualizer/claddagh/VisualizerCladdagh')), fastExport: true },
-  { id: 'folia-monet', renderer: lazy(() => import('../vendor/folia/components/visualizer/monet/VisualizerMonet')), fastExport: true },
-  { id: 'folia-cappella', renderer: lazy(() => import('../vendor/folia/components/visualizer/cappella/VisualizerCappella')), fastExport: true },
-  { id: 'folia-diorama', renderer: lazy(() => import('../vendor/folia/components/visualizer/diorama/VisualizerDiorama')), fastExport: true },
-  { id: 'folia-aurora', renderer: lazy(() => import('../aurora/AuroraStudio')), fastExport: true },
-  { id: 'folia-pendolo', renderer: lazy(() => import('../vendor/folia/components/visualizer/pendolo/VisualizerPendolo')), fastExport: true },
-  { id: 'folia-tempera', renderer: lazy(() => import('../vendor/folia/components/visualizer/tempera/VisualizerTempera')), fastExport: true, usesWordSegmentation: true },
-  { id: 'folia-sonnet', renderer: lazy(() => import('../vendor/folia/components/visualizer/sonnet/VisualizerSonnet')), fastExport: true, usesWordSegmentation: true },
-  { id: 'folia-still', renderer: lazy(() => import('../vendor/folia/components/visualizer/still/VisualizerStill')), fastExport: true },
+  { id: 'folia-fume', renderer: lazy(() => import('../vendor/folia/components/visualizer/fume/VisualizerFume')), frameExport: true },
+  { id: 'folia-classic', renderer: lazy(() => import('../vendor/folia/components/visualizer/classic/Visualizer')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-partita', renderer: lazy(() => import('../vendor/folia/components/visualizer/partita/VisualizerPartita')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-cadenza', renderer: lazy(() => import('../vendor/folia/components/visualizer/cadenza/VisualizerCadenza')), frameExport: true },
+  { id: 'folia-tilt', renderer: lazy(() => import('../vendor/folia/components/visualizer/tilt/VisualizerTilt')), frameExport: true },
+  { id: 'folia-claddagh', renderer: lazy(() => import('../vendor/folia/components/visualizer/claddagh/VisualizerCladdagh')), frameExport: true },
+  { id: 'folia-monet', renderer: lazy(() => import('../vendor/folia/components/visualizer/monet/VisualizerMonet')), frameExport: true },
+  { id: 'folia-cappella', renderer: lazy(() => import('../vendor/folia/components/visualizer/cappella/VisualizerCappella')), frameExport: true },
+  { id: 'folia-diorama', renderer: lazy(() => import('../vendor/folia/components/visualizer/diorama/VisualizerDiorama')), frameExport: true },
+  { id: 'folia-aurora', renderer: lazy(() => import('../aurora/AuroraStudio')), frameExport: true },
+  { id: 'folia-pendolo', renderer: lazy(() => import('../vendor/folia/components/visualizer/pendolo/VisualizerPendolo')), frameExport: true },
+  { id: 'folia-tempera', renderer: lazy(() => import('../vendor/folia/components/visualizer/tempera/VisualizerTempera')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-sonnet', renderer: lazy(() => import('../vendor/folia/components/visualizer/sonnet/VisualizerSonnet')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-still', renderer: lazy(() => import('../vendor/folia/components/visualizer/still/VisualizerStill')), frameExport: true },
 ];
 
 const registry = new Map(entries.map(entry => [entry.id, entry]));
 export const visualizerEntries = entries;
 export const getStudioVisualizer = (id: TemplateId) => registry.get(id) ?? registry.get('folia-fume')!;
-export const supportsFastExport = (id: TemplateId) => getStudioVisualizer(id).fastExport;
+export const supportsFrameExport = (id: TemplateId) => getStudioVisualizer(id).frameExport;

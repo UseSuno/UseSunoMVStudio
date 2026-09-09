@@ -1,3 +1,4 @@
+import { estimatedSeconds, rememberThroughput } from '../export/estimates';
 import type { FrameProgress } from '../export/progress';
 import { isValidExportRange } from '../export/range';
 import { useEffect, useRef, useState } from 'react';
@@ -9,7 +10,7 @@ import { downloadBlob } from '../persistence/project';
 import { Modal } from './Modal';
 import { RecordingFocus } from './RecordingFocus';
 import { VideoResult } from './VideoResult';
-import { canExportDirect, canExportFrames, canCompositeProject, regionCaptureAvailable } from '../export/capabilities';
+import { canExportDirect, canExportFrames, canCompositeProject, recommendsFrameExport, regionCaptureAvailable } from '../export/capabilities';
 import { exportMessage } from '../export/messages';
 import type { AudioAnalysis } from '../audio/analysis';
 import { ensureProjectFont } from '../fonts/fonts';
@@ -26,13 +27,24 @@ export interface ExportArtifact {
 // Encoding loads only when the export surface is opened.
 export function ExportModal({ project, buffer, peaks, audioAnalysis, close, clock, artifact, setArtifact, confirmDiscard = true }: { project: Project; buffer: AudioBuffer | null; peaks: number[]; audioAnalysis: AudioAnalysis; clock: PlaybackClock; close: () => void; artifact: ExportArtifact | null; setArtifact: (artifact: ExportArtifact | null) => void; confirmDiscard?: boolean }) {
   const { t } = useTranslation();
-  const [captureMethod, setCaptureMethod] = useState<'standard' | 'native' | 'direct' | 'worker' | 'layered'>('standard');
-  const [captureBackend, setCaptureBackend] = useState('');
+  const layeredReady = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
+  const folia = project.template.startsWith('folia-');
   const directReady = canExportDirect(project);
-  useEffect(() => { if (!directReady && (captureMethod === 'direct' || captureMethod === 'worker')) setCaptureMethod('standard'); }, [directReady, captureMethod]);
-  const fastFolia = canExportFrames(project);
-  const [height, setHeight] = useState(720), [format, setFormat] = useState<'mp4' | 'webm'>('mp4'), [mode, setMode] = useState<'offline' | 'realtime'>(!project.template.startsWith('folia-') || fastFolia ? 'offline' : 'realtime');
-  const needsRegion = mode === 'realtime' && project.template.startsWith('folia-') && (project.template !== 'folia-fume' || !canCompositeProject(project));
+  const frameExportReady = !folia || (canExportFrames(project) && (layeredReady || directReady));
+  const frameExportPreferred = frameExportReady && (!folia || recommendsFrameExport(project));
+  const [captureMethod, setCaptureMethod] = useState<'standard' | 'native' | 'direct' | 'worker' | 'layered'>(layeredReady ? 'layered' : 'standard');
+  const [captureBackend, setCaptureBackend] = useState('');
+  const [textCache, setTextCache] = useState(project.template === 'folia-tilt' && project.background === 'latent');
+  const useTextCache = textCache && captureMethod === 'layered' && (project.template === 'folia-tilt');
+  const visibleCaptureMethods = [...(layeredReady ? ['layered'] as const : []), ...(directReady ? ['direct'] as const : []), ...(directReady && layeredReady ? ['worker'] as const : [])];
+  useEffect(() => { if (captureMethod === 'standard' && directReady && !layeredReady) { setCaptureMethod('direct'); return; } if (!directReady && (captureMethod === 'direct' || captureMethod === 'worker')) setCaptureMethod(layeredReady ? 'layered' : 'standard'); }, [directReady, captureMethod, layeredReady]);
+  const [height, setHeight] = useState(() => {
+    try { return localStorage.getItem('verse-export-height') === '1080' ? 1080 : 720; } catch { return 720; }
+  }), [format, setFormat] = useState<'mp4' | 'webm'>('mp4'), [mode, setMode] = useState<'offline' | 'realtime'>(frameExportPreferred ? 'offline' : 'realtime');
+  useEffect(() => {
+    try { localStorage.setItem('verse-export-height', String(height)); } catch { /* Export remains usable without storage. */ }
+  }, [height]);
+  const needsRegion = mode === 'realtime' && folia && (project.template !== 'folia-fume' || !canCompositeProject(project));
   const regionReady = !needsRegion || regionCaptureAvailable();
   const [range, setRange] = useState({ start: 0, end: project.duration });
   const [support, setSupport] = useState<{ mp4: boolean; webm: boolean } | null>(null), [error, setError] = useState('');
@@ -44,7 +56,7 @@ export function ExportModal({ project, buffer, peaks, audioAnalysis, close, cloc
   const paused = running && mode === 'offline' && hidden;
   const controller = useRef<AbortController | null>(null);
   const [w, h] = dimensions(project.ratio, height);
-  useEffect(() => { if (!fastFolia && project.template.startsWith('folia-')) setMode('realtime'); }, [fastFolia, project.template]);
+  useEffect(() => { if (!frameExportReady) setMode('realtime'); }, [frameExportReady]);
   useEffect(() => {
     let alive = true; setSupport(null); setError('');
     const detect = async () => {
@@ -63,14 +75,18 @@ export function ExportModal({ project, buffer, peaks, audioAnalysis, close, cloc
   const outOfRange = project.lines.some(l => l.start !== null && l.start + project.offset >= project.duration);
   const validRange = isValidExportRange(range.start, range.end, project.duration);
   const codecReady = !!support?.[format];
-  const canExport = !!buffer && !untimed && !outOfRange && validRange && codecReady && fontReady !== null && regionReady && (mode !== 'offline' || !project.template.startsWith('folia-') || fastFolia);
+  const canExport = !!buffer && !untimed && !outOfRange && validRange && codecReady && fontReady !== null && regionReady && (mode !== 'offline' || frameExportReady);
   const rangeDuration = Math.max(0, range.end - range.start);
   const start = async () => {
     if (!buffer || !validRange || controller.current) return;
     setCaptureBackend(''); setRunning(true); setFrameStats(undefined); setError(''); setProgress(0); setStatus(t('export.preparing')); controller.current = new AbortController();
     const allowExit = preventExportExit();
-    try { const options = { captureMethod, height, fps: 30, start: range.start, end: range.end, format }; const report = (p: number, text: string, frames?: FrameProgress) => { setProgress(p); setStatus(text); setFrameStats(frames); };
-      const blob = project.template.startsWith('folia-') ? mode === 'offline' ? await (await import('../export/foliaFrames')).exportFoliaFrames(project, buffer, audioAnalysis, options, clock, controller.current.signal, report, setCaptureBackend) : await (await import('../export/folia')).recordFolia(project, buffer, audioAnalysis, options, clock, controller.current.signal, report) : mode === 'offline' ? await (await import('../export/video')).exportVideo(project, buffer, peaks, options, controller.current.signal, report) : await (await import('../export/realtime')).recordVideo(project, buffer, peaks, options, controller.current.signal, report, clock);
+    let lastAverage: number | undefined;
+    let usedFallback = false;
+    const reportBackend = (backend: string) => { if (backend !== captureMethod) usedFallback = true; setCaptureBackend(backend); };
+    try { const options = { captureMethod, textCache: useTextCache, height, fps: 30, start: range.start, end: range.end, format }; const report = (p: number, text: string, frames?: FrameProgress) => { setProgress(p); setStatus(text); setFrameStats(frames); if (frames?.averageFps) lastAverage = frames.averageFps; };
+      const blob = folia ? mode === 'offline' ? await (await import('../export/foliaFrames')).exportFoliaFrames(project, buffer, audioAnalysis, options, clock, controller.current.signal, report, reportBackend) : await (await import('../export/folia')).recordFolia(project, buffer, audioAnalysis, options, clock, controller.current.signal, report) : mode === 'offline' ? await (await import('../export/video')).exportVideo(project, buffer, peaks, options, controller.current.signal, report) : await (await import('../export/realtime')).recordVideo(project, buffer, peaks, options, controller.current.signal, report, clock);
+      if (mode === 'offline' && lastAverage && !usedFallback) rememberThroughput(project, options, lastAverage);
       setArtifact({ blob, filename: `${project.title}.${format}`, width: w, height: h, format, createdAt: Date.now() }); setProgress(1); setStatus(t('export.complete'));
     } catch (e) { setError(e instanceof Error ? e.message : t('export.failed')); } finally { allowExit(); controller.current = null; setRunning(false); }
   };
@@ -86,8 +102,10 @@ export function ExportModal({ project, buffer, peaks, audioAnalysis, close, cloc
   if (running && mode === 'realtime') return <Modal title={t('export.realtimeLabel')} close={close} busy className="recording-dialog"><RecordingFocus progress={progress} duration={rangeDuration} status={status === exportMessage('recording') ? t('export.recordingLabel') : status} cancel={() => controller.current?.abort()}/></Modal>;
   return <Modal title={t('export.title')} close={close} busy={running} className="export-dialog"><div className="export-dialog-body"><div className="export-summary"><Film size={26}/><div><strong>{project.title}</strong><p>{w} × {h} · 30 fps · {t('export.containsAudio')}</p></div></div>
     <div className="export-layout"><section className="export-settings" aria-labelledby="export-settings-title"><h3 id="export-settings-title">{t('export.settingsTitle')}</h3><fieldset disabled={running}><div className="form-row"><label>{t('export.resolution')}<select value={height} onChange={e => setHeight(Number(e.target.value))}><option value={720}>720p · {t('export.standard')}</option><option value={1080}>1080p · {t('export.hd')}</option></select></label><label>{t('export.format')}<select value={format} onChange={e => setFormat(e.target.value as 'mp4' | 'webm')}><option value="mp4" disabled={!support?.mp4}>MP4 {support && !support.mp4 ? `· ${t('export.unsupported')}` : ''}</option><option value="webm" disabled={!support?.webm}>WebM {support && !support.webm ? `· ${t('export.unsupported')}` : ''}</option></select></label></div>
-    <fieldset className="export-mode-control"><legend>{t('export.method')}</legend><div className="export-mode-options"><label><input type="radio" name="export-mode" value="offline" checked={mode === 'offline'} disabled={project.template.startsWith('folia-') && !fastFolia} onChange={() => setMode('offline')}/><span>{t('export.offline')}</span></label><label><input type="radio" name="export-mode" value="realtime" checked={mode === 'realtime'} onChange={() => setMode('realtime')}/><span>{t('export.realtimeLabel')}</span></label></div></fieldset>
-    {mode === 'offline' && project.template.startsWith('folia-') && <><label className="form-label">{t('export.captureMethod')}<select value={captureMethod} onChange={e => setCaptureMethod(e.target.value as typeof captureMethod)}><option value="standard">{t('export.captureStandard')}</option><option value="layered" disabled={typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined'}>{t('export.captureLayered')}</option><option value="native">{t('export.captureNative')}</option>{directReady && <><option value="direct">{t('export.captureDirect')}</option><option value="worker" disabled={typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined'}>{t('export.captureWorker')}</option></>}</select></label>{captureMethod !== 'standard' && <details className="export-method-details"><summary>{t('export.methodDetails')}</summary><p>{t(captureMethod === 'layered' ? 'export.layeredNotice' : captureMethod === 'worker' ? 'export.workerNotice' : captureMethod === 'direct' ? 'export.directNotice' : 'export.nativeNotice')}</p></details>}</>}
+    <fieldset className="export-mode-control"><legend>{t('export.method')}</legend><div className="export-mode-options"><label><input type="radio" name="export-mode" value="offline" checked={mode === 'offline'} disabled={!frameExportReady} onChange={() => setMode('offline')}/><span>{t('export.offline')}{frameExportPreferred && <small>{t('export.recommended')}</small>}</span></label><label><input type="radio" name="export-mode" value="realtime" checked={mode === 'realtime'} onChange={() => setMode('realtime')}/><span>{t('export.realtimeLabel')}{!frameExportPreferred && <small>{t('export.recommended')}</small>}</span></label></div></fieldset>
+    {folia && <p className="field-note export-strategy-note">{t(frameExportPreferred ? 'export.framePreferred' : 'export.realtimePreferred')}</p>}
+    {mode === 'offline' && project.template.startsWith('folia-') && <><label className="form-label">{t('export.captureMethod')}{visibleCaptureMethods.length > 1 ? <select value={captureMethod} onChange={e => setCaptureMethod(e.target.value as typeof captureMethod)}>{visibleCaptureMethods.map(method => <option key={method} value={method}>{t(`export.capture${method[0].toUpperCase()}${method.slice(1)}`)}</option>)}</select> : <span>{visibleCaptureMethods.length ? t(`export.capture${visibleCaptureMethods[0][0].toUpperCase()}${visibleCaptureMethods[0].slice(1)}`) : t('export.layeredFallback')}</span>}</label>{captureMethod !== 'standard' && <details className="export-method-details"><summary>{t('export.methodDetails')}</summary><p>{t(captureMethod === 'layered' ? 'export.layeredNotice' : captureMethod === 'worker' ? 'export.workerNotice' : captureMethod === 'direct' ? 'export.directNotice' : 'export.nativeNotice')}</p></details>}</>}
+    {mode === 'offline' && captureMethod === 'layered' && (project.template === 'folia-tilt') && <div className="export-text-cache"><label><input type="checkbox" checked={textCache} onChange={event => setTextCache(event.target.checked)}/><span>{t('export.textCache')}</span></label><p className="field-note">{t('export.textCacheNote')}</p></div>}
     <div className="form-row"><label>{t('export.start')}<input type="number" min="0" step="0.01" value={Number(range.start.toFixed(2))} onChange={e => setRange({ ...range, start: Number(e.target.value) })}/></label><label>{t('export.end')}<input type="number" min="0" step="0.01" max={Number(project.duration.toFixed(2))} value={Number(range.end.toFixed(2))} onChange={e => setRange({ ...range, end: Number(e.target.value) })}/></label></div></fieldset></section><aside className="export-guidance">
 
     {mode === 'offline' && project.template.startsWith('folia-') && captureMethod !== 'standard' && captureBackend && <p role="status" className="field-note">{t(captureBackend === 'layered' ? 'export.layeredActive' : captureBackend === 'worker' ? 'export.workerActive' : captureBackend === 'direct' ? 'export.directActive' : captureBackend === 'native' ? 'export.nativeActive' : captureMethod === 'layered' ? 'export.layeredFallback' : 'export.nativeFallback')}</p>}
@@ -99,6 +117,11 @@ export function ExportModal({ project, buffer, peaks, audioAnalysis, close, cloc
     {untimed && <p className="warning">{t('export.untimedWarning')}</p>}{outOfRange && <p className="warning">{t('export.outOfRange')}</p>}{!validRange && <p className="warning">{t('export.rangeInvalid')}</p>}
     {!support && !error && <p className="field-note">{t('export.detecting')}</p>}{support && !support.mp4 && !support.webm && <p className="warning">{t('export.noCodec')}</p>}
     </aside></div>
+    {!running && mode === 'offline' && project.template.startsWith('folia-') && visibleCaptureMethods.length > 0 && <div className="export-estimates"><strong>{t('export.estimateTitle')}</strong><dl>{visibleCaptureMethods.map(method => {
+      const seconds = estimatedSeconds(project, { captureMethod: method, textCache: method === 'layered' && textCache && (project.template === 'folia-tilt'), height, fps: 30, start: range.start, end: range.end, format });
+      const duration = (value: number) => `${Math.floor(value / 60)}:${Math.floor(value % 60).toString().padStart(2, '0')}`;
+      return <div key={method}><dt>{t(`export.capture${method[0].toUpperCase()}${method.slice(1)}`)}</dt><dd>{seconds === undefined ? t('export.estimateUnknown') : `≈ ${duration(Math.ceil(seconds / 10) * 10)}`}</dd></div>;
+    })}</dl><p className="field-note">{t('export.estimateNote')}</p></div>}
     <div className="export-feedback">{running && <div className="export-progress"><progress value={progress} max="1"/><span role="status">{paused ? t('export.paused') : status}</span><b>{Math.round(progress * 100)}%</b></div>}
     {running && frameStats && <p className="field-note">{t('export.speedStats', { fps: frameStats.fps.toFixed(1), remaining: `${Math.floor(Math.ceil(frameStats.remainingSeconds) / 60)}:${(Math.ceil(frameStats.remainingSeconds) % 60).toString().padStart(2, '0')}` })}</p>}
     {error && <p role="alert" className="warning">{error}</p>}{artifact && <div className="export-success"><CheckCircle2 size={19}/><span>{artifact.filename} · {(artifact.blob.size / 1024 / 1024).toFixed(1)} MB · {artifact.width} × {artifact.height}</span></div>}

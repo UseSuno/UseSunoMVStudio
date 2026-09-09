@@ -1,3 +1,4 @@
+import { layerBitmaps } from './layerPackets';
 import { beginPaperPresentation, endPaperPresentation, releaseDeferredPaperDraws } from './paperPresentation';
 import { rememberCanvasBitmaps, restoreCanvasBitmaps, releaseCanvasBitmaps } from './canvasBitmaps';
 import { setDeferredStagePresentation, setLayeredPresentation } from './presentation';
@@ -53,10 +54,10 @@ function FoliaHost() {
   useEffect(() => { const sync=(event:StorageEvent)=>{if(event.key==='verse-studio-language'&&event.newValue)void i18n.changeLanguage(event.newValue);};addEventListener('storage',sync);return()=>removeEventListener('storage',sync);},[]);
   useEffect(() => {
     let directSession = false, workerSession = false;
-    let layeredSession = false;
+    let layeredSession = false, textCache = false;
     type CaptureJob = { frame?: import('./layeredCapture').LayeredFrame; bitmap?: ImageBitmap; backend: string };
     const jobs = new Map<string, Promise<CaptureJob>>();
-    const releaseJobs = () => { for (const job of jobs.values()) void job.then(value => { value.bitmap?.close(); value.frame?.layers.forEach(layer => layer.source?.close()); }, () => undefined); jobs.clear(); };
+    const releaseJobs = () => { for (const job of jobs.values()) void job.then(value => { value.bitmap?.close(); if (value.frame) layerBitmaps(value.frame.layers).forEach(source => source.close()); }, () => undefined); jobs.clear(); };
     const queueJob = (job: Promise<CaptureJob>) => { const id = crypto.randomUUID(); void job.catch(() => undefined); jobs.set(id, job); return id; };
     const remember = () => { const root = document.getElementById('folia-root')!; if (workerSession) fumeWorkerCapture!.rememberWorkerCanvasFrames(root); else if (layeredSession) rememberCanvasBitmaps(root); else rememberCanvasFrames(root); };
     const handle = (e: MessageEvent) => {
@@ -69,15 +70,16 @@ function FoliaHost() {
         const data = e.data, requestId = data.requestId;
         if (typeof requestId !== 'string') return;
         void (async () => {
+          const stageStats: Record<string, number> = {};
           try {
             await waitUntilVisible();
             if (data.type === 'verse:collect') {
               const job = jobs.get(data.jobId); if (!job) throw new Error('Capture job is missing.'); jobs.delete(data.jobId);
               const value = await job;
-              parent.postMessage({ type: 'verse:capture-result', requestId, bitmap: value.bitmap, workerFrame: value.frame, captureBackend: value.backend }, location.origin, value.bitmap ? [value.bitmap] : value.frame!.layers.flatMap(layer => layer.source ? [layer.source] : []));
+              parent.postMessage({ type: 'verse:capture-result', requestId, bitmap: value.bitmap, workerFrame: value.frame, captureBackend: value.backend }, location.origin, value.bitmap ? [value.bitmap] : layerBitmaps(value.frame!.layers));
               return;
             }
-            if (data.type === 'verse:export-begin') { releaseJobs(); releaseDeferredPaperDraws(); layeredSession = data.captureMethod === 'layered'; setLayeredPresentation(layeredSession); if (layeredSession) layeredCapture ??= await import('./layeredCapture'); layeredCapture?.releaseLayeredCapture(); directSession = ['direct', 'worker'].includes(data.captureMethod) && !!refs.current.project && canExportDirect(refs.current.project); if (data.captureMethod === 'worker' && directSession) fumeWorkerCapture ??= await import('./workerCapture'); workerSession = data.captureMethod === 'worker' && directSession; fumeWorkerCapture?.setFumeExternalPainting(workerSession); releaseDirectCapture(); releaseNativeCapture(); frameClock.begin(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); }
+            if (data.type === 'verse:export-begin') { releaseJobs(); releaseDeferredPaperDraws(); layeredSession = data.captureMethod === 'layered'; textCache = data.textCache === true; setLayeredPresentation(layeredSession); if (layeredSession) layeredCapture ??= await import('./layeredCapture'); layeredCapture?.releaseLayeredCapture(); directSession = ['direct', 'worker'].includes(data.captureMethod) && !!refs.current.project && canExportDirect(refs.current.project); if (data.captureMethod === 'worker' && directSession) fumeWorkerCapture ??= await import('./workerCapture'); workerSession = data.captureMethod === 'worker' && directSession; fumeWorkerCapture?.setFumeExternalPainting(workerSession); releaseDirectCapture(); releaseNativeCapture(); frameClock.begin(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); }
             if (data.type === 'verse:export-end') { releaseJobs(); releaseDeferredPaperDraws();
               directSession = false; workerSession = false; layeredSession = false; setLayeredPresentation(false); layeredCapture?.releaseLayeredCapture(); fumeWorkerCapture?.setFumeExternalPainting(false); releaseDirectCapture(); releaseNativeCapture(); frameClock.end(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps();
               // The original renderer resumes with its native clock after the export session.
@@ -86,11 +88,15 @@ function FoliaHost() {
             if (data.type === 'verse:export-step') {
               if (!frameClock.exporting) throw new Error('Export session is not active.');
               for (const tick of data.steps ?? [data]) {
+                const updateStarted = frameClock.realNow();
                 flushSync(() => applyTick(tick));
                 if (layeredSession) beginPaperPresentation(document.getElementById('folia-root')!);
                 setDeferredStagePresentation(layeredSession && tick.capturePixels === false);
                 try { frameClock.step(tick.delta); } finally { setDeferredStagePresentation(false); if (layeredSession) endPaperPresentation(tick.capturePixels !== false); }
+                stageStats.animationUpdateMs = (stageStats.animationUpdateMs ?? 0) + frameClock.realNow() - updateStarted;
+                const retainStarted = frameClock.realNow();
                 if (tick.capturePixels !== false) remember();
+                stageStats.canvasRetainSubmitMs = (stageStats.canvasRetainSubmitMs ?? 0) + frameClock.realNow() - retainStarted;
                 if (!directSession && !layeredSession) await frameClock.paint();
                 frameClock.hold();
                 await Promise.resolve();
@@ -122,21 +128,24 @@ function FoliaHost() {
               if (data.captureMethod === 'layered' && layeredSession) {
                 try {
                   if (data.prepareLayered) {
-                    const prepared = await layeredCapture!.prepareLayeredPacket(root, innerWidth, innerHeight, refs.current.project!, true);
+                    const prepared = await layeredCapture!.prepareLayeredPacket(root, innerWidth, innerHeight, refs.current.project!, true, textCache);
                     const jobId = queueJob(prepared.result.then(frame => ({ frame, backend: 'layered' })));
                     parent.postMessage({ type: 'verse:capture-result', requestId, jobId }, location.origin);
                     return;
                   }
                   if (data.transferLayers) {
                     const workerFrame = await layeredCapture!.captureLayeredPacket(root, innerWidth, innerHeight, refs.current.project!);
-                    parent.postMessage({ type: 'verse:capture-result', requestId, workerFrame, captureBackend: 'layered' }, location.origin, workerFrame.layers.flatMap(layer => layer.source ? [layer.source] : []));
+                    parent.postMessage({ type: 'verse:capture-result', requestId, workerFrame, captureBackend: 'layered' }, location.origin, layerBitmaps(workerFrame.layers));
                     return;
                   }
                   const composite = await layeredCapture!.captureLayered(root, innerWidth, innerHeight, refs.current.project!);
                   const bitmap = await createImageBitmap(composite);
                   parent.postMessage({ type: 'verse:capture-result', requestId, bitmap, captureBackend: 'layered' }, location.origin, [bitmap]);
                   return;
-                } catch { await restoreCanvasBitmaps(); releaseCanvasBitmaps(); layeredSession = false; setLayeredPresentation(false); releaseDeferredPaperDraws(); layeredCapture?.releaseLayeredCapture(); }
+                } catch {
+                  await restoreCanvasBitmaps(); releaseCanvasBitmaps(); layeredSession = false; setLayeredPresentation(false); releaseDeferredPaperDraws(); layeredCapture?.releaseLayeredCapture();
+                  throw new Error(exportMessage('layeredFailed'));
+                }
               }
               if (layeredSession) await restoreCanvasBitmaps();
               const native = data.captureMethod === 'native' ? await captureNative(root, innerWidth, innerHeight) : null;
@@ -151,7 +160,7 @@ function FoliaHost() {
               parent.postMessage({ type: 'verse:capture-result', requestId, bitmap, captureBackend: direct ? 'direct' : native ? 'native' : 'standard' }, location.origin, [bitmap]);
               return;
             }
-            parent.postMessage({ type: 'verse:capture-result', requestId, ok: true }, location.origin);
+            parent.postMessage({ type: 'verse:capture-result', requestId, ok: true, stageStats: data.type === 'verse:export-step' ? stageStats : undefined, clockStats: data.type === 'verse:export-end' ? frameClock.diagnostics : undefined }, location.origin);
           } catch (error) {
             parent.postMessage({ type: 'verse:capture-result', requestId, error: error instanceof Error ? error.message : exportMessage('composeFailed') }, location.origin);
           }

@@ -1,0 +1,13 @@
+export const strategyCopy: Record<string, [string, string, string]> = {
+  en: ['Recommended', 'This project has a verified faster frame-export path on the tested device.', 'Real-time recording is recommended for this project. Layered frame export remains available to try, but may be slower than playback.'],
+  'zh-CN': ['推荐', '这个工程在已测试设备上有经过验证的快速逐帧路径。', '建议这个工程使用实时录制。仍可尝试分层逐帧导出，但速度可能慢于播放。'],
+  'zh-TW': ['建議', '這個專案在已測試裝置上有經過驗證的快速逐影格路徑。', '建議這個專案使用即時錄製。仍可嘗試分層逐影格匯出，但速度可能慢於播放。'],
+  id: ['Disarankan', 'Proyek ini memiliki jalur ekspor bingkai yang telah terbukti lebih cepat pada perangkat yang diuji.', 'Perekaman waktu nyata disarankan untuk proyek ini. Ekspor bingkai berlapis tetap dapat dicoba, tetapi mungkin lebih lambat daripada pemutaran.'],
+  hi: ['सुझाया गया', 'इस प्रोजेक्ट के लिए परीक्षण किए गए डिवाइस पर तेज़ फ़्रेम निर्यात का सत्यापित तरीका उपलब्ध है।', 'इस प्रोजेक्ट के लिए रीयल-टाइम रिकॉर्डिंग सुझाई जाती है। परतों वाला फ़्रेम निर्यात आज़माया जा सकता है, पर वह प्लेबैक से धीमा हो सकता है।'],
+  'pt-BR': ['Recomendado', 'Este projeto tem um caminho de exportação por quadros comprovadamente mais rápido no dispositivo testado.', 'A gravação em tempo real é recomendada para este projeto. A exportação em camadas continua disponível, mas pode ser mais lenta que a reprodução.'],
+  fil: ['Inirerekomenda', 'May nasubukan nang mabilis na frame export ang proyektong ito sa ginamit na device.', 'Inirerekomenda ang real-time recording para sa proyektong ito. Maaari pa ring subukan ang layered frame export, ngunit maaaring mas mabagal ito kaysa playback.'],
+  de: ['Empfohlen', 'Für dieses Projekt wurde auf dem getesteten Gerät ein schnellerer Bildexport bestätigt.', 'Für dieses Projekt wird die Echtzeitaufnahme empfohlen. Der Ebenenexport bleibt zum Ausprobieren verfügbar, kann aber langsamer als die Wiedergabe sein.'],
+  ur: ['تجویز کردہ', 'اس پروجیکٹ کے لیے آزمودہ ڈیوائس پر تیز فریم ایکسپورٹ کا تصدیق شدہ راستہ موجود ہے۔', 'اس پروجیکٹ کے لیے ریئل ٹائم ریکارڈنگ تجویز کی جاتی ہے۔ تہہ وار فریم ایکسپورٹ آزمایا جا سکتا ہے، مگر پلے بیک سے سست ہو سکتا ہے۔'],
+  ru: ['Рекомендуется', 'Для этого проекта на протестированном устройстве подтверждён быстрый покадровый экспорт.', 'Для этого проекта рекомендуется запись в реальном времени. Послойный покадровый экспорт остаётся доступным, но может быть медленнее воспроизведения.'],
+  vi: ['Khuyên dùng', 'Dự án này có đường xuất từng khung hình đã được xác nhận nhanh hơn trên thiết bị thử nghiệm.', 'Nên ghi hình thời gian thực cho dự án này. Bạn vẫn có thể thử xuất từng khung hình theo lớp, nhưng tốc độ có thể chậm hơn phát lại.'],
+};

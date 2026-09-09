@@ -53,7 +53,10 @@ export const resolveSonnetTransitionEffectFrame = (
             y: 0,
             scale: 1,
             rotation: 0,
-            alpha: phase === 'exit' ? 1 - amount : 1 - amount * 0.82,
+            // Scenes and shots switch without overlap. Fading the outgoing item
+            // to zero and starting the incoming item nearly transparent exposes
+            // the background at every boundary, which reads as a dropped frame.
+            alpha: 1,
             blur: amount * 14,
             glitch: 0,
             glitchSeed: 0,
@@ -67,9 +70,7 @@ export const resolveSonnetTransitionEffectFrame = (
             y: 0,
             scale: 1,
             rotation: 0,
-            alpha: phase === 'exit' && linear > 0.86
-                ? 1 - (linear - 0.86) / 0.14
-                : 1,
+            alpha: 1,
             blur: 0,
             glitch: amount,
             glitchSeed: seed * 0.0001 + step * 0.173,
@@ -82,7 +83,7 @@ export const resolveSonnetTransitionEffectFrame = (
         // Scene filters use a viewport-sized render surface, so transition scaling exposes its bounds.
         scale: 1,
         rotation: 0,
-        alpha: phase === 'exit' ? 1 - amount : 1 - amount * 0.72,
+        alpha: 1,
         blur: 0,
         glitch: 0,
         glitchSeed: 0,
