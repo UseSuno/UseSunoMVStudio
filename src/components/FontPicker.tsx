@@ -60,6 +60,12 @@ export function FontPicker({ project, change, importFont, installFont }: { proje
     return () => { alive = false; controller.abort(); };
   }, [open, tab, t]);
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close); }, []);
+  useEffect(() => {
+    if (!open) return;
+    const htmlOverflow = document.documentElement.style.overflow, bodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+    return () => { document.documentElement.style.overflow = htmlOverflow; document.body.style.overflow = bodyOverflow; };
+  }, [open]);
   const visible = useMemo(() => {
     const source = tab === 'google' ? families.map(family => ({ family } as LocalFont)) : locals;
     const filtered = query ? source.filter(item => item.family.toLowerCase().includes(query.toLowerCase())) : source;
