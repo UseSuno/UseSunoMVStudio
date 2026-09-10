@@ -37,6 +37,44 @@ export function estimateTiming(lines: LyricLine[], duration: number): LyricLine[
   const step = duration / Math.max(lines.length, 1);
   return lines.map((l, i) => ({ ...l, start: i * step, end: (i + 1) * step, precision: 'estimated', words: [] }));
 }
-export function toLrc(lines: LyricLine[], offset = 0) {
-  return lines.map(l => { if (l.start === null) return l.text; const t = Math.max(0, l.start + offset); return `[${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toFixed(2).padStart(5, '0')}]${l.text}`; }).join('\n');
+const lrcTime = (time: number) => {
+  const centiseconds = Math.round(Math.max(0, time) * 100);
+  const seconds = Math.floor(centiseconds / 100);
+  return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60 + centiseconds % 100 / 100).toFixed(2).padStart(5, '0')}`;
+};
+const withoutWhitespace = (value: string) => value.replace(/\s/gu, '');
+
+function enhancedLrcWords(line: LyricLine, offset: number) {
+  if (!line.words.length || line.words.some(word => !Number.isFinite(word.start))) return null;
+  let cursor = 0;
+  const chunks: string[] = [];
+  for (const word of line.words) {
+    const expected = withoutWhitespace(word.text);
+    if (!expected) return null;
+    let chunk = '';
+    while (cursor < line.text.length && /\s/u.test(line.text[cursor])) chunk += line.text[cursor++];
+    let matched = '';
+    while (cursor < line.text.length && withoutWhitespace(matched) !== expected) {
+      const char = line.text[cursor++];
+      chunk += char;
+      matched += char;
+    }
+    if (withoutWhitespace(matched) !== expected) return null;
+    while (cursor < line.text.length && /\s/u.test(line.text[cursor])) chunk += line.text[cursor++];
+    chunks.push(`<${lrcTime(word.start + offset)}>${chunk}`);
+  }
+  if (cursor < line.text.length) {
+    const trailing = line.text.slice(cursor);
+    if (/\S/u.test(trailing)) return null;
+    chunks[chunks.length - 1] += trailing;
+  }
+  return chunks.join('');
+}
+
+export function toLrc(lines: LyricLine[], offset = 0, includeWords = false) {
+  return lines.map(line => {
+    if (line.start === null) return line.text;
+    const words = includeWords ? enhancedLrcWords(line, offset) : null;
+    return `[${lrcTime(line.start + offset)}]${words ?? line.text}`;
+  }).join('\n');
 }

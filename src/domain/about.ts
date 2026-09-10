@@ -1,5 +1,5 @@
 // Every production build includes a source archive matching its checked source snapshot.
-export const studioVersion = '0.1.0';
+export const studioVersion = '0.2.0';
 export const sourceUrl = 'https://github.com/UseSuno/UseSunoMVStudio';
 export const privacyUrl = '/privacy.html';
 export const licensesUrl = '/licenses.html';

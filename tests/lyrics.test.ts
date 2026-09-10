@@ -10,6 +10,10 @@ describe('lyric import', () => {
   it('retains enhanced word timing instead of distributing evenly', () => { const { lines } = parseLyrics('[00:01.00]<00:01.00>风<00:01.20>来了<00:03.50>\n[00:04.00]下一句', 8); expect(lines[0].words).toEqual([{ text: '风', start: 1, end: 1.2 }, { text: '来了', start: 1.2, end: 3.5 }]); });
   it('retains long gaps by limiting estimated line holds', () => { const { lines } = parseLyrics('[00:00.00]第一句\n[00:20.00]第二句', 30); expect(lines[0].end).toBe(8); });
   it('makes estimated timing explicit and exports offset only once', () => { const lines = estimateTiming(parseLyrics('a\nb', 10).lines, 10); expect(lines.map(l => l.precision)).toEqual(['estimated', 'estimated']); expect(toLrc(lines, 1)).toBe('[00:01.00]a\n[00:06.00]b'); });
+  it('exports completed word timing as enhanced LRC when requested', () => {
+    const lines = [{ id: 'line-0', text: 'Hello world', start: 1, end: 3, precision: 'manual' as const, words: [{ text: 'Hello', start: 1, end: 1.5 }, { text: 'world', start: 1.5, end: 3 }] }];
+    expect(toLrc(lines, 0.25, true)).toBe('[00:01.25]<00:01.25>Hello <00:01.75>world');
+  });
   it('ignores metadata and warns on out of range lyrics', () => { const parsed = parseLyrics('[ti:Title]\n[ar:Artist]\n[01:00.00]late', 10); expect(parsed.lines).toHaveLength(1); expect(parsed.warnings[0]).toContain('超出'); });
 });
 describe('project validation', () => {

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, FileAudio, Pause, Play, RotateCcw, Save, Scissors, TimerReset, Undo2, Sun, Moon, X, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileAudio, Pause, Play, RotateCcw, Save, Scissors, TimerReset, Undo2, Sun, Moon, X, SlidersHorizontal } from 'lucide-react';
 import type { Project } from '../domain/model';
-import { loadLocal, saveLocal, type SavedProject } from '../persistence/project';
+import { toLrc } from '../import/lyrics';
+import { downloadBlob, loadLocal, saveLocal, type SavedProject } from '../persistence/project';
 import { applyTokenTimes, tokensFromLines, previewTimes, parseTimingInput, timingTimeError, toLyricTime, toMediaTime, type TimingToken } from './timing';
 import { parseSegmentationDraft, segmentationDraft } from '../import/segmentation';
 import { useTranslation } from 'react-i18next';
@@ -175,6 +176,11 @@ export function TimestampApp() {
       setMessage(t('timestamp.saveDone')); return true;
     } catch (error) { setMessage(error instanceof Error ? error.message : t('timestamp.saveFailed')); return false; }
   };
+  const exportLrc = () => {
+    if (!project) return;
+    const lines = applyTokenTimes(project.lines, tokens, project.duration, project.offset);
+    downloadBlob(new Blob([toLrc(lines, project.offset, true)], { type: 'text/plain;charset=utf-8' }), `${project.title || 'lyrics'}.lrc`);
+  };
   const play = () => { if (audio.current && saved?.audio) void audio.current.play().catch(() => { setPlaying(false); setPreview(false); setMessage(t('timestamp.playFailed')); }); };
   const togglePlayback = () => { if (!audio.current) return; if (audio.current.paused) play(); else audio.current.pause(); };
   const togglePreview = () => {
@@ -205,7 +211,7 @@ export function TimestampApp() {
   useEffect(() => { const key = (event: KeyboardEvent) => keyHandler.current(event); window.addEventListener('keydown', key, true); return () => window.removeEventListener('keydown', key, true); }, []);
 
   const visibleCursor = preview ? previewCursor : cursor;
-  return <main className="timestamp-page"><header className="timestamp-header"><a href="/" onClick={event => { if (!project) return; event.preventDefault(); audio.current?.pause(); void save().then(ok => { if (ok) location.assign('/'); }); }}><ArrowLeft size={17}/>{t('timestamp.back')}</a><div><span>USESUNO MV / TIMING LAB</span><h1>{mode === 'timing'?t('timestamp.timingTitle'):t('timestamp.phrasingTitle')}</h1></div><div className="timestamp-header-actions"><button className="theme-toggle" aria-label={light ? t('timestamp.darkMode') : t('timestamp.lightMode')} onClick={toggleTheme}>{light ? <Moon size={17}/> : <Sun size={17}/>}</button><LanguagePicker/><button className="primary" disabled={!project || saving} onClick={() => void save()}><Save size={15}/>{t('timestamp.save')}</button></div></header>
+  return <main className="timestamp-page"><header className="timestamp-header"><a href="/" onClick={event => { if (!project) return; event.preventDefault(); audio.current?.pause(); void save().then(ok => { if (ok) location.assign('/'); }); }}><ArrowLeft size={17}/>{t('timestamp.back')}</a><div><span>USESUNO MV / TIMING LAB</span><h1>{mode === 'timing'?t('timestamp.timingTitle'):t('timestamp.phrasingTitle')}</h1></div><div className="timestamp-header-actions"><button className="theme-toggle" aria-label={light ? t('timestamp.darkMode') : t('timestamp.lightMode')} onClick={toggleTheme}>{light ? <Moon size={17}/> : <Sun size={17}/>}</button><LanguagePicker/><button className="timestamp-lrc" aria-label={t('modal.lrcOnly')} disabled={!project} onClick={exportLrc}><Download size={15}/><span>{t('modal.lrcOnly')}</span></button><button className="primary" disabled={!project || saving} onClick={() => void save()}><Save size={15}/>{t('timestamp.save')}</button></div></header>
     <nav className="timestamp-modes" aria-label={t('timestamp.tools')}><button className={mode === 'timing' ? 'active' : ''} onClick={() => { switchMode('timing'); }}><TimerReset size={14}/>{t('timestamp.timing')}</button><button className={mode === 'phrasing' ? 'active' : ''} onClick={() => { switchMode('phrasing'); }}><Scissors size={14}/>{t('timestamp.phrasing')}</button></nav>
     <section className="timestamp-sticky"><div className="timestamp-transport"><div className="timestamp-song"><FileAudio size={22}/><div><strong>{project?.title ?? t('timestamp.noProject')}</strong><span>{project?.audioName || t(saved?.audio ? 'timestamp.audioLoaded' : 'timestamp.waitAudio')}</span></div></div><audio ref={audio} controls onTimeUpdate={event => setTime(event.currentTarget.currentTime)} onLoadedMetadata={() => { if (audio.current) audio.current.playbackRate = speed; }} onPlay={() => { setPlaying(true); audio.current?.blur(); }} onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setPreview(false); }}/></div>
         <div hidden={mode !== 'timing'} className={`timestamp-now ${preview ? 'preview' : ''}`}><div className="timestamp-current"><span>{t('timestamp.currentTime')}</span><strong ref={clockLabel}>{label(time)}</strong></div><div className="timestamp-next"><span>{preview?t('timestamp.previewing'):t('timestamp.nextWord')}</span><strong>{tokens[visibleCursor]?.text ?? (preview ? '—' : t('timestamp.complete'))}</strong></div><div className="timestamp-now-actions"><button className="play-button" aria-label={playing ? t('timestamp.pause') : t('timestamp.play')} disabled={!saved?.audio} onClick={togglePlayback}>{playing ? <Pause size={16}/> : <Play size={16}/>}<span>{playing?t('timestamp.pause'):t('timestamp.play')}</span></button>{!preview && <><button className="stamp-main" disabled={!current || !saved?.audio} onClick={stamp}><span className="stamp-dot"/><strong>{t('timestamp.tap')}</strong><kbd>Tab</kbd></button><button disabled={!history.length} onClick={undo}><Undo2 size={15}/>{t('timestamp.undo')}</button></>}</div></div>
