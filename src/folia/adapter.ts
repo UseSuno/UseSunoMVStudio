@@ -46,13 +46,58 @@ export function estimatedLyricUnits(text: string): string[] {
   return units.length ? units : [text];
 }
 
+/**
+ * Normalizes user lyrics by handling slash (/) delimiters cleanly:
+ * - Slashes are phrase boundaries for layout and phrasing.
+ * - Slashes must NEVER be displayed or counted as characters.
+ * - Slashes must NEVER take up duration in singing timelines.
+ */
+export function normalizeLyricPhrasing(rawText: string, existingSegments?: string[]): {
+  cleanText: string;
+  wordSegments?: string[];
+} {
+  if (!rawText.includes('/')) {
+    return { cleanText: rawText, wordSegments: existingSegments };
+  }
+
+  const isCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(rawText);
+  // Split by slashes, trimming surrounding whitespace
+  const rawPhrases = rawText.split('/').map(s => s.trim()).filter(Boolean);
+  const cleanText = isCjk ? rawPhrases.join('') : rawPhrases.join(' ');
+  const wordSegments = existingSegments && existingSegments.length > 0
+    ? existingSegments.map(s => s.replace(/\//g, '').trim()).filter(Boolean)
+    : rawPhrases;
+
+  return { cleanText, wordSegments };
+}
+
 // Studio metadata adapts to Folia's existing renderer contract, without changing its animation implementation.
 export function foliaLines(project: Project): Line[] {
   return project.lines.filter(l => l.start !== null && l.end !== null).map(l => {
-    const estimatedUnits = project.estimatedReveal ? estimatedLyricUnits(l.text) : [];
-    const words = l.words.length ? l.words.map(w => ({ text: w.text, startTime: w.start, endTime: w.end })) : estimatedUnits.length ? estimatedUnits.map((text, i) => ({ text, startTime: l.start! + (l.end! - l.start!) * i / estimatedUnits.length, endTime: l.start! + (l.end! - l.start!) * (i + 1) / estimatedUnits.length })) : [{ text: l.text, startTime: l.start!, endTime: l.end! }];
-    const line: Line = { id: l.id, fullText: l.text, startTime: l.start!, endTime: l.end!, words, wordSegments: l.wordSegments };
-    line.renderHints = buildLineRenderHints(line); return line;
+    const { cleanText, wordSegments } = normalizeLyricPhrasing(l.text, l.wordSegments);
+    const estimatedUnits = project.estimatedReveal ? estimatedLyricUnits(cleanText) : [];
+    const words = l.words.length
+      ? l.words
+          .filter(w => w.text.trim() !== '/' && w.text.trim() !== '')
+          .map(w => ({ text: w.text.replace(/\//g, '').trim(), startTime: w.start, endTime: w.end }))
+          .filter(w => w.text.length > 0)
+      : estimatedUnits.length
+      ? estimatedUnits.map((text, i) => ({
+          text,
+          startTime: l.start! + (l.end! - l.start!) * i / estimatedUnits.length,
+          endTime: l.start! + (l.end! - l.start!) * (i + 1) / estimatedUnits.length,
+        }))
+      : [{ text: cleanText, startTime: l.start!, endTime: l.end! }];
+    const line: Line = {
+      id: l.id,
+      fullText: cleanText,
+      startTime: l.start!,
+      endTime: l.end!,
+      words,
+      wordSegments,
+    };
+    line.renderHints = buildLineRenderHints(line);
+    return line;
   }).sort((a, b) => a.startTime - b.startTime);
 }
 export function foliaTheme(p: Project): Theme {

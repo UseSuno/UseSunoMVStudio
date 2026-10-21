@@ -22,3 +22,5 @@ Studio Aurora uses the author's own "nebula-canvas" skill runtime — a first-pa
 ## Source and license access
 
 Each build publishes its project source at `source/verse-studio-source.zip`, with `SOURCE_MANIFEST.json` hashing the included source files, the lockfile, build instructions, original Folia notices and Studio patches. The full AGPL license is also served at `legal/LICENSE.txt`; `licenses.html` links the source and notices without requiring a GitHub account. The archive excludes local project/media data, credentials, environment files and dependency installation/build directories. Its locked dependencies can be restored with `npm ci`; exact third-party source-package links are provided in the dependency inventory.
+
+Light tide is a Studio-authored Canvas 2D background. Custom media backgrounds allow local user playback of personal images, animated GIFs, and videos under AGPL-3.0 terms.

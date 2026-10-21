@@ -691,6 +691,60 @@ export const DEFAULT_TEMPERA_TUNING: TemperaTuning = {
   postProcessLensDistortion: 0.3,
 };
 
+export type LumiereRenderQuality = 'full' | 'balanced' | 'low';
+
+export interface LumiereTuning {
+  lightIntensity: number;
+  audioResponse: number;
+  fogDensity: number;
+  darkField: number;
+  moteAmount: number;
+  bloom: number;
+  textBloom: number;
+  unlitOpacity: number;
+  windowNeighbors: 1 | 2;
+  decay: number;
+  echo: number;
+  fogOctaves: number;
+  lineArt: boolean;
+  frontBokeh: boolean;
+  trails: boolean;
+  hideTrails: boolean;
+  seamlessTransitions: boolean;
+  overlayFrame: boolean;
+  textOnly: boolean;
+  keywordColors: boolean;
+  themeIcons: boolean;
+  themeColorMix: number;
+  renderQuality: LumiereRenderQuality;
+}
+
+export const DEFAULT_LUMIERE_TUNING: LumiereTuning = {
+  lightIntensity: 1,
+  audioResponse: 1,
+  fogDensity: 1,
+  darkField: 0.75,
+  moteAmount: 1,
+  bloom: 1,
+  textBloom: 1,
+  unlitOpacity: 0.22,
+  windowNeighbors: 2,
+  decay: 1,
+  echo: 1,
+  fogOctaves: 5,
+  lineArt: true,
+  frontBokeh: true,
+  trails: true,
+  hideTrails: false,
+  seamlessTransitions: true,
+  overlayFrame: true,
+  textOnly: false,
+  keywordColors: true,
+  themeIcons: true,
+  themeColorMix: 0.3,
+  renderQuality: 'full',
+};
+
 // Diorama's camera STYLE (calm/standard/chaotic) is not part of its tuning: like every other
 // visualizer it follows theme.animationIntensity (the player-panel intensity chip / AI themes), so
 // the theme system stays the single source of truth. The tuning only carries diorama-specific knobs.

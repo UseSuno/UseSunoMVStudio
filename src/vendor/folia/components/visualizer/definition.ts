@@ -94,6 +94,8 @@ export interface VisualizerSharedProps {
     onSonnetTuningChange?: (patch: Partial<SonnetTuning>) => void;
     temperaTuning?: TemperaTuning;
     onTemperaTuningChange?: (patch: Partial<TemperaTuning>) => void;
+    lumiereTuning?: import('../../types').LumiereTuning;
+    onLumiereTuningChange?: (patch: Partial<import('../../types').LumiereTuning>) => void;
 }
 
 export interface VisualizerSettingsPanelProps {
@@ -139,6 +141,8 @@ export interface VisualizerSettingsPanelProps {
     onSonnetTuningChange?: (patch: Partial<SonnetTuning>) => void;
     temperaTuning?: TemperaTuning;
     onTemperaTuningChange?: (patch: Partial<TemperaTuning>) => void;
+    lumiereTuning?: import('../../types').LumiereTuning;
+    onLumiereTuningChange?: (patch: Partial<import('../../types').LumiereTuning>) => void;
     /** Mark slider drag start so onChange only updates draft. */
     onSliderPointerDown?: () => void;
     /** Commit draft values to persistent store on slider release. */

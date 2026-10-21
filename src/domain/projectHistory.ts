@@ -1,8 +1,8 @@
 import type { Project } from './model';
 
-export type ProjectAssets = { font: Blob | null; cover: Blob | null; monetPortrait: Blob | null };
+export type ProjectAssets = { font: Blob | null; cover: Blob | null; monetPortrait: Blob | null; customBackground: Blob | null };
 export type EditorSnapshot = { project: Project; assets: ProjectAssets };
-export const emptyProjectAssets = (): ProjectAssets => ({ font: null, cover: null, monetPortrait: null });
+export const emptyProjectAssets = (): ProjectAssets => ({ font: null, cover: null, monetPortrait: null, customBackground: null });
 
 /** Blob references are retained, not copied, so undo restores the actual selected media. */
 export class ProjectHistory {

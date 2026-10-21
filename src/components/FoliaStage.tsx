@@ -4,13 +4,13 @@ import type { PlaybackClock } from '../audio/clock';
 import { sampleAudioAnalysis, type AudioAnalysis } from '../audio/analysis';
 import { useTranslation } from 'react-i18next';
 // Keep source renderers isolated from the editor's CSS and physical viewport dimensions.
-export function FoliaStage({ project, audioAnalysis, clock, fontBlob, coverBlob, monetPortraitBlob }: { project: Project; audioAnalysis: AudioAnalysis; clock: PlaybackClock; fontBlob: Blob | null; coverBlob: Blob | null; monetPortraitBlob: Blob | null }) {
+export function FoliaStage({ project, audioAnalysis, clock, fontBlob, coverBlob, monetPortraitBlob, customBackgroundBlob }: { project: Project; audioAnalysis: AudioAnalysis; clock: PlaybackClock; fontBlob: Blob | null; coverBlob: Blob | null; monetPortraitBlob: Blob | null; customBackgroundBlob: Blob | null }) {
   const { t } = useTranslation();
   const host = useRef<HTMLDivElement>(null), frame = useRef<HTMLIFrameElement>(null), ready = useRef(false);
   const latest = useRef({ project, audioAnalysis }); latest.current = { project, audioAnalysis };
   const [w, h] = dimensions(project.ratio, 720);
-  const artwork = useMemo(() => ({ coverUrl: coverBlob ? URL.createObjectURL(coverBlob) : null, portraitUrl: monetPortraitBlob ? URL.createObjectURL(monetPortraitBlob) : null }), [coverBlob, monetPortraitBlob]);
-  useEffect(() => () => { if (artwork.coverUrl) URL.revokeObjectURL(artwork.coverUrl); if (artwork.portraitUrl) URL.revokeObjectURL(artwork.portraitUrl); }, [artwork]);
+  const artwork = useMemo(() => ({ coverUrl: coverBlob ? URL.createObjectURL(coverBlob) : null, portraitUrl: monetPortraitBlob ? URL.createObjectURL(monetPortraitBlob) : null, customBackgroundUrl: customBackgroundBlob ? URL.createObjectURL(customBackgroundBlob) : null }), [coverBlob, monetPortraitBlob, customBackgroundBlob]);
+  useEffect(() => () => { if (artwork.coverUrl) URL.revokeObjectURL(artwork.coverUrl); if (artwork.portraitUrl) URL.revokeObjectURL(artwork.portraitUrl); if (artwork.customBackgroundUrl) URL.revokeObjectURL(artwork.customBackgroundUrl); }, [artwork]);
   useEffect(() => {
     const resize = () => { if (!host.current || !frame.current) return; const r = host.current.getBoundingClientRect(); frame.current.style.transform = `translate(-50%,-50%) scale(${Math.min(r.width / w, r.height / h)})`; };
     const observer = new ResizeObserver(resize); if (host.current) observer.observe(host.current); resize(); return () => observer.disconnect();

@@ -12,7 +12,9 @@ describe('export capability and media clock contract', () => {
     for (const template of ['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-tempera', 'folia-sonnet'] as const) {
       expect(canExportFrames({ template, background: 'latent' })).toBe(true);
       expect(canCompositeProject({ template, background: 'common' })).toBe(false);
+      expect(canCompositeProject({ template, background: 'custom' })).toBe(false);
       expect(canExportFrames({ template, background: 'aurora-nebula' })).toBe(true);
+      expect(canExportFrames({ template, background: 'custom' })).toBe(true);
     }
     expect(canExportFrames({ template: 'folia-classic', background: 'latent' })).toBe(true);
     expect(canExportFrames({ template: 'folia-partita', background: 'common' })).toBe(true);

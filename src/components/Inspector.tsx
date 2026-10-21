@@ -1,27 +1,170 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SlidersHorizontal, Check, ImagePlus, Trash2, WandSparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { backgrounds, palettes, templates, type Project } from '../domain/model';
 import { FontPicker } from './FontPicker';
 import { Modal } from './Modal';
-const traditionalTemplateNames: Partial<Record<Project['template'], string>> = { 'folia-partita':'雲階','folia-tilt':'傾訴','folia-claddagh':'迴環','folia-diorama':'鏡台','folia-aurora':'極光','folia-pendolo':'時計','folia-sonnet':'商籟','folia-still':'靜幀' };
+const traditionalTemplateNames: Partial<Record<Project['template'], string>> = { 'folia-partita':'雲階','folia-tilt':'傾訴','folia-claddagh':'迴環','folia-diorama':'鏡台','folia-aurora':'極光','folia-pendolo':'時計','folia-sonnet':'商籟','folia-still':'靜幀','folia-astral':'星軌','folia-kyoto':'京調','folia-chroma':'丹青','folia-elysium':'靈境','folia-syzygy':'朔望','folia-lumiere':'繪光' };
 function ImagePreview({ blob, label, emptyLabel }: { blob: Blob | null; label: string; emptyLabel: string }) {
   const [url, setUrl] = useState('');
   useEffect(() => { if (!blob) { setUrl(''); return; } const next = URL.createObjectURL(blob); setUrl(next); return () => URL.revokeObjectURL(next); }, [blob]);
   return url ? <img src={url} alt={label}/> : <span className="monet-empty">{emptyLabel}</span>;
 }
+function MediaPreview({ blob, mimeType, label, emptyLabel }: { blob: Blob | null; mimeType?: string; label: string; emptyLabel: string }) {
+  const [url, setUrl] = useState('');
+  useEffect(() => { if (!blob) { setUrl(''); return; } const next = URL.createObjectURL(blob); setUrl(next); return () => URL.revokeObjectURL(next); }, [blob]);
+  if (!url) return <span className="monet-empty"><ImagePlus size={14} style={{ opacity: 0.65 }} /><span>{emptyLabel}</span></span>;
+  const isVideo = (mimeType || blob?.type || '').startsWith('video/');
+  if (isVideo) return <video src={url} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />;
+  return <img src={url} alt={label}/>;
+}
 // Presentation controls persist in the project and are shared by both render paths.
-export function Inspector({ project: p, change, importFont, installFont, importTemperaImages, removeTemperaImage, coverBlob, monetPortraitBlob, importMonetPortrait, clearMonetPortrait }: { project: Project; change: (patch: Partial<Project>) => void; importFont: () => void; installFont: (blob: Blob, family: string) => Promise<void>; importTemperaImages: () => void; removeTemperaImage: (id: string) => Promise<void>; coverBlob: Blob | null; monetPortraitBlob: Blob | null; importMonetPortrait: () => void; clearMonetPortrait: () => void }) {
+export function Inspector({ project: p, change, importFont, installFont, importTemperaImages, removeTemperaImage, coverBlob, monetPortraitBlob, importMonetPortrait, clearMonetPortrait, customBackgroundBlob, importCustomBackground, clearCustomBackground }: { project: Project; change: (patch: Partial<Project>) => void; importFont: () => void; installFont: (blob: Blob, family: string) => Promise<void>; importTemperaImages: () => void; removeTemperaImage: (id: string) => Promise<void>; coverBlob: Blob | null; monetPortraitBlob: Blob | null; importMonetPortrait: () => void; clearMonetPortrait: () => void; customBackgroundBlob: Blob | null; importCustomBackground: () => void; clearCustomBackground: () => void }) {
   const { t, i18n } = useTranslation();
   const isChinese = (i18n.resolvedLanguage || i18n.language).startsWith('zh');
   const isTraditional = (i18n.resolvedLanguage || i18n.language) === 'zh-TW';
   const [pickerOpen, setPickerOpen] = useState(false);
+  const lastPresetRef = useRef<Project['background']>(p.background === 'custom' ? 'light-tide' : p.background);
+  useEffect(() => {
+    if (p.background !== 'custom') {
+      lastPresetRef.current = p.background;
+    }
+  }, [p.background]);
+  const activeBgTab = p.background === 'custom' ? 'custom' : 'preset';
+  const presetBackgrounds = backgrounds.filter(item => item.id !== 'custom');
   const selectedTemplate = templates.find(item => item.id === p.template) ?? templates[0];
   const choose = (id: Project['template']) => { change({ template: id }); setPickerOpen(false); };
-  const name = (item: typeof templates[number]) => !isChinese ? item.english.replace(' · Folia','') : isTraditional ? traditionalTemplateNames[item.id] || item.name : item.name;
-  const art = (id: string) => <span className={`template-art ${id === 'folia-fume' ? 'article' : id === 'folia-classic' ? 'flow' : 'tilt'}`} aria-hidden="true">{!isChinese ? <><i>LYRIC</i><i>MOTION</i></> : id === 'folia-fume' ? <><i>把日子</i><i>{isTraditional?'寫成詩':'写成诗'}</i><i>{isTraditional?'讓風讀':'让风读'}</i></> : id === 'folia-classic' ? <><i>風</i><i>與</i><i>詩</i></> : <><i>{isTraditional?'寫成':'写成'}</i><i>{isTraditional?'一首詩':'一首诗'}</i></>}</span>;
+  const name = (item: typeof templates[number]) => !isChinese ? item.english.replace(' · Folia','').replace(' · Studio','').replace(' · Folia Craft','') : isTraditional ? traditionalTemplateNames[item.id] || item.name : item.name;
+  const art = (id: string) => <span className={`template-art ${id === 'folia-fume' ? 'article' : id === 'folia-classic' ? 'flow' : 'tilt'}`} aria-hidden="true">{!isChinese ? <><i>LYRIC</i><i>MOTION</i></> : id === 'folia-lumiere' ? <><i>{isTraditional?'繪':'绘'}</i><i>光</i></> : id === 'folia-syzygy' ? <><i>朔</i><i>望</i></> : id === 'folia-elysium' ? <><i>{isTraditional?'靈':'灵'}</i><i>境</i></> : id === 'folia-chroma' ? <><i>丹</i><i>青</i></> : id === 'folia-kyoto' ? <><i>京</i><i>{isTraditional?'調':'调'}</i></> : id === 'folia-astral' ? <><i>星</i><i>{isTraditional?'軌':'轨'}</i></> : id === 'folia-fume' ? <><i>把日子</i><i>{isTraditional?'寫成詩':'写成诗'}</i><i>{isTraditional?'讓風讀':'让风读'}</i></> : id === 'folia-classic' ? <><i>風</i><i>與</i><i>詩</i></> : <><i>{isTraditional?'寫成':'写成'}</i><i>{isTraditional?'一首詩':'一首诗'}</i></>}</span>;
   return <aside className="inspector" data-tour="inspector"><div className="panel-title"><h2>{t('inspector.title')}</h2><SlidersHorizontal size={15}/></div><section className="inspector-section animation-summary"><div className="section-label">{t('inspector.animation')} <span>{t('inspector.styles', { count: templates.length })}</span></div><button className="template-current" onClick={() => setPickerOpen(true)}>{art(selectedTemplate.id)}<span className="template-copy"><small>{t('inspector.selected')}</small><strong>{name(selectedTemplate)}</strong><em>{isChinese ? selectedTemplate.english : 'Folia visualizer'}</em></span><WandSparkles size={15}/></button><button className="browse-templates" onClick={() => setPickerOpen(true)}>{t('inspector.change')}<span>→</span></button></section>
-    <section className="inspector-section"><div className="section-label">{t("inspector.background")} <span>{t("inspector.independent")}</span></div><div className="background-list">{backgrounds.map(item => <button key={item.id} className={p.background === item.id ? 'selected' : ''} onClick={() => change({ background: item.id })}><span className={`background-chip ${item.id}`}/><span><strong>{t(`background.${item.id}.name`)}</strong><small>{t(`background.${item.id}.description`)}</small></span>{p.background === item.id ? <Check size={13}/> : null}</button>)}</div><div className="section-label response-title">{t("inspector.reactivity")} <span>{t("inspector.previewExport")}</span></div><div className="segmented response-modes">{([['off',t("inspector.off")],['gentle',t("inspector.gentle")],['rhythmic',t("inspector.rhythmic")]] as const).map(([value,label]) => <button key={value} className={p.audioReactivity === value ? 'selected' : ''} onClick={() => change({ audioReactivity: value })}>{label}</button>)}</div>{p.audioReactivity !== 'off' ? <label className="range-label">{t("inspector.amount")} <span>{Math.round(p.audioReactivityAmount * 100)}%</span><input aria-label={t('aria.musicResponse')} type="range" min="0" max="1" step="0.05" value={p.audioReactivityAmount} onChange={e => change({ audioReactivityAmount: Number(e.target.value) })}/></label> : null}<p className="field-note">{t('inspector.reactivityNote')}</p></section>
+    <section className="inspector-section">
+      <div className="section-label">{t("inspector.background")} <span>{t("inspector.independent")}</span></div>
+      <div className="segmented bg-tabs">
+        <button
+          type="button"
+          className={activeBgTab === 'preset' ? 'selected' : ''}
+          onClick={() => {
+            if (p.background === 'custom') {
+              change({ background: lastPresetRef.current || 'light-tide' });
+            }
+          }}
+        >
+          {t('inspector.bgPresetTab')}
+        </button>
+        <button
+          type="button"
+          className={activeBgTab === 'custom' ? 'selected' : ''}
+          onClick={() => {
+            if (p.background !== 'custom') {
+              change({ background: 'custom' });
+            }
+          }}
+        >
+          {t('inspector.bgCustomTab')}
+        </button>
+      </div>
+      {activeBgTab === 'preset' ? (
+        <div className="background-list">
+          {presetBackgrounds.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              className={p.background === item.id ? 'selected' : ''}
+              onClick={() => change({ background: item.id })}
+            >
+              <span className={`background-chip ${item.id}`}/>
+              <span>
+                <strong>{t(`background.${item.id}.name`)}</strong>
+                <small>{t(`background.${item.id}.description`)}</small>
+              </span>
+              {p.background === item.id ? <Check size={13}/> : null}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="custom-bg-section">
+          <div className="custom-bg-card">
+            <div
+              className="custom-bg-thumb"
+              role="button"
+              tabIndex={0}
+              title={customBackgroundBlob ? t('inspector.customBgReplace') : t('inspector.customBgUpload')}
+              onClick={importCustomBackground}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); importCustomBackground(); } }}
+            >
+              <MediaPreview
+                blob={customBackgroundBlob}
+                mimeType={p.customBackgroundMimeType}
+                label={t('background.custom.name')}
+                emptyLabel={t('inspector.noCustomBg')}
+              />
+            </div>
+            <div className="custom-bg-meta">
+              <strong title={p.customBackgroundName || t('background.custom.name')}>
+                {p.customBackgroundName || t('background.custom.name')}
+              </strong>
+              <small>
+                {p.customBackgroundType === 'video'
+                  ? t('inspector.bgTypeVideo')
+                  : p.customBackgroundType === 'gif'
+                  ? t('inspector.bgTypeGif')
+                  : p.customBackgroundType === 'image'
+                  ? t('inspector.bgTypeImage')
+                  : t('inspector.customBgHint')}
+              </small>
+            </div>
+          </div>
+          <div className="custom-bg-actions">
+            <button type="button" className="custom-bg-btn-primary" onClick={importCustomBackground}>
+              <ImagePlus size={13}/>
+              {customBackgroundBlob ? t('inspector.customBgReplace') : t('inspector.customBgUpload')}
+            </button>
+            {customBackgroundBlob ? (
+              <button type="button" className="custom-bg-btn-danger" onClick={clearCustomBackground}>
+                <Trash2 size={13}/>
+                {t('inspector.customBgRemove')}
+              </button>
+            ) : null}
+          </div>
+          <label className="range-label">
+            {t('inspector.customBgBlur')} <span>{p.customBackgroundBlur || 0}px</span>
+            <input
+              type="range"
+              min="0"
+              max="25"
+              step="1"
+              value={p.customBackgroundBlur || 0}
+              onChange={e => change({ customBackgroundBlur: Number(e.target.value) })}
+            />
+          </label>
+          <label className="range-label">
+            {t('inspector.customBgDim')} <span>{Math.round((p.customBackgroundDim ?? .25) * 100)}%</span>
+            <input
+              type="range"
+              min="0"
+              max="0.8"
+              step="0.05"
+              value={p.customBackgroundDim ?? .25}
+              onChange={e => change({ customBackgroundDim: Number(e.target.value) })}
+            />
+          </label>
+          <p className="field-note">{t('inspector.customBgFormats')}</p>
+        </div>
+      )}
+      <div className="section-label response-title">{t("inspector.reactivity")} <span>{t("inspector.previewExport")}</span></div>
+      <div className="segmented response-modes">
+        {([['off',t("inspector.off")],['gentle',t("inspector.gentle")],['rhythmic',t("inspector.rhythmic")]] as const).map(([value,label]) => (
+          <button key={value} className={p.audioReactivity === value ? 'selected' : ''} onClick={() => change({ audioReactivity: value })}>{label}</button>
+        ))}
+      </div>
+      {p.audioReactivity !== 'off' ? (
+        <label className="range-label">
+          {t("inspector.amount")} <span>{Math.round(p.audioReactivityAmount * 100)}%</span>
+          <input aria-label={t('aria.musicResponse')} type="range" min="0" max="1" step="0.05" value={p.audioReactivityAmount} onChange={e => change({ audioReactivityAmount: Number(e.target.value) })}/>
+        </label>
+      ) : null}
+      <p className="field-note">{t('inspector.reactivityNote')}</p>
+    </section>
     {p.template === 'folia-tempera' ? <section className="inspector-section"><div className="section-label">{t('tempera.pool')} <span>{p.temperaLayerImages.length} / 16 · {t('tempera.saved')}</span></div><button className="font-upload" disabled={p.temperaLayerImages.length >= 16} onClick={importTemperaImages}><ImagePlus size={13}/>{t('tempera.add')}</button><div className="tempera-pool">{p.temperaLayerImages.map(image => <div className="tempera-item" key={image.id}><div className="tempera-title"><span title={image.name}>{image.name}</span><button title={t('tempera.remove',{name:image.name})} aria-label={t('tempera.remove',{name:image.name})} onClick={() => void removeTemperaImage(image.id)}><Trash2 size={12}/></button></div><div className="tempera-controls"><label>{t('tempera.horizontal')}<select aria-label={`${image.name} · ${t('tempera.horizontal')}`} value={image.align} onChange={e => change({ temperaLayerImages: p.temperaLayerImages.map(item => item.id === image.id ? { ...item, align: e.target.value as typeof image.align } : item) })}><option value="left">{t('tempera.left')}</option><option value="center">{t('tempera.center')}</option><option value="right">{t('tempera.right')}</option><option value="free">{t('tempera.free')}</option></select></label><label>{t('tempera.vertical')}<select aria-label={`${image.name} · ${t('tempera.vertical')}`} value={image.verticalAlign} onChange={e => change({ temperaLayerImages: p.temperaLayerImages.map(item => item.id === image.id ? { ...item, verticalAlign: e.target.value as typeof image.verticalAlign } : item) })}><option value="top">{t('tempera.top')}</option><option value="center">{t('tempera.center')}</option><option value="bottom">{t('tempera.bottom')}</option><option value="free">{t('tempera.free')}</option></select></label></div><label className="tempera-range">{t('tempera.scale')} <span>{Math.round(image.scale * 100)}%</span><input aria-label={`${image.name} · ${t('tempera.scale')}`} type="range" min="0.1" max="2" step="0.05" value={image.scale} onChange={e => change({ temperaLayerImages: p.temperaLayerImages.map(item => item.id === image.id ? { ...item, scale: Number(e.target.value) } : item) })}/></label><label className="tempera-range">{t('tempera.opacity')} <span>{Math.round(image.opacity * 100)}%</span><input aria-label={`${image.name} · ${t('tempera.opacity')}`} type="range" min="0" max="1" step="0.05" value={image.opacity} onChange={e => change({ temperaLayerImages: p.temperaLayerImages.map(item => item.id === image.id ? { ...item, opacity: Number(e.target.value) } : item) })}/></label></div>)}</div></section> : null}
     {p.template === 'folia-monet' ? <section className="inspector-section monet-panel"><div className="section-label">{t('monet.portrait')} <span>{t('monet.saved')}</span></div><div className="monet-assets"><button className={p.monetPortraitSource === 'cover' ? 'selected' : ''} disabled={!coverBlob} onClick={() => change({ monetPortraitSource: 'cover' })}><ImagePreview blob={coverBlob} label={t('monet.embeddedCover')} emptyLabel={t('monet.noImage')}/><span><strong>{t('monet.songCover')}</strong><small>{coverBlob ? t('monet.fromAudio') : t('monet.noCover')}</small></span>{p.monetPortraitSource === 'cover' && coverBlob ? <Check size={12}/> : null}</button><button className={p.monetPortraitSource === 'custom' ? 'selected' : ''} onClick={importMonetPortrait}><ImagePreview blob={monetPortraitBlob} label={t('monet.customPortrait')} emptyLabel={t('monet.noImage')}/><span><strong>{t('monet.customImage')}</strong><small>{p.monetPortraitName || t('monet.uploadHint')}</small></span>{p.monetPortraitSource === 'custom' && monetPortraitBlob ? <Check size={12}/> : null}</button></div><div className="monet-actions"><button onClick={importMonetPortrait}><ImagePlus size={12}/>{monetPortraitBlob ? t('monet.replace') : t('monet.upload')}</button><button disabled={!monetPortraitBlob} onClick={clearMonetPortrait}><Trash2 size={12}/>{t('monet.remove')}</button></div><div className="section-label monet-subtitle">{t('monet.shape')}</div><div className="segmented"><button className={p.monetPortraitStyle === 'square' ? 'selected' : ''} onClick={() => change({ monetPortraitStyle: 'square' })}>{t('monet.square')}</button><button className={p.monetPortraitStyle === 'rectangular' ? 'selected' : ''} onClick={() => change({ monetPortraitStyle: 'rectangular' })}>{t('monet.portraitShape')}</button></div><label className="range-label">{t('monet.position')} <span>{p.monetPortraitOffsetX > 0 ? '+' : ''}{p.monetPortraitOffsetX}px</span><input aria-label={t('monet.position')} type="range" min="-240" max="240" step="5" value={p.monetPortraitOffsetX} onChange={e => change({ monetPortraitOffsetX: Number(e.target.value) })}/></label><div className="section-label monet-subtitle">{t('monet.spectrum')}</div><label className="toggle-label"><span>{t('monet.showSpectrum')}</span><input type="checkbox" checked={p.monetAudioVisualization} onChange={e => change({ monetAudioVisualization: e.target.checked })}/></label>{p.monetAudioVisualization ? <div className="segmented response-modes"><button className={p.monetAudioStyle === 'bar' ? 'selected' : ''} onClick={() => change({ monetAudioStyle: 'bar' })}>{t('monet.bars')}</button><button className={p.monetAudioStyle === 'line' ? 'selected' : ''} onClick={() => change({ monetAudioStyle: 'line' })}>{t('monet.curve')}</button></div> : null}</section> : null}
     <section className="inspector-section"><div className="section-label">{t("inspector.palette")}</div><div className="swatches">{(Object.keys(palettes) as Project['palette'][]).map(key => <button key={key} title={t(`palette.${key}`)} aria-label={t(`palette.${key}`)} className={p.palette === key ? 'selected' : ''} style={{ background: palettes[key].bg, color: palettes[key].ink }} onClick={() => change({ palette: key })}><span style={{ background: palettes[key].accent }}/>{p.palette === key && <Check size={13}/>}</button>)}</div></section>

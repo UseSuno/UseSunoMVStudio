@@ -24,6 +24,12 @@ const entries: StudioVisualizerEntry[] = [
   { id: 'folia-tempera', renderer: lazy(() => import('../vendor/folia/components/visualizer/tempera/VisualizerTempera')), frameExport: true, usesWordSegmentation: true },
   { id: 'folia-sonnet', renderer: lazy(() => import('../vendor/folia/components/visualizer/sonnet/VisualizerSonnet')), frameExport: true, usesWordSegmentation: true },
   { id: 'folia-still', renderer: lazy(() => import('../vendor/folia/components/visualizer/still/VisualizerStill')), frameExport: true },
+  { id: 'folia-astral', renderer: lazy(() => import('../astral/AstralLyrics')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-kyoto', renderer: lazy(() => import('../kyoto/KyotoLyrics')), frameExport: true },
+  { id: 'folia-chroma', renderer: lazy(() => import('../chroma/ChromaLyrics')), frameExport: true },
+  { id: 'folia-elysium', renderer: lazy(() => import('../elysium/VisualizerElysium')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-syzygy', renderer: lazy(() => import('../syzygy/VisualizerSyzygy')), frameExport: true, usesWordSegmentation: true },
+  { id: 'folia-lumiere', renderer: lazy(() => import('../lumiere/VisualizerLumiere')), frameExport: true, usesWordSegmentation: true },
 ];
 
 const registry = new Map(entries.map(entry => [entry.id, entry]));

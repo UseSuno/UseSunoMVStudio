@@ -3,7 +3,7 @@ import { supportsFrameExport } from '../folia/registry';
 
 /** Canvas-only real-time composition excludes DOM shapes; offline DOM capture includes them. */
 export function canCompositeProject(project: Pick<Project, 'template' | 'background'>) {
-  return ['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-tempera', 'folia-sonnet'].includes(project.template) && project.background !== 'common';
+  return ['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-tempera', 'folia-sonnet', 'folia-astral', 'folia-kyoto', 'folia-chroma', 'folia-elysium', 'folia-syzygy', 'folia-lumiere'].includes(project.template) && project.background !== 'common' && project.background !== 'custom';
 }
 export function canExportFrames(project: Pick<Project, 'template' | 'background'>) {
   return supportsFrameExport(project.template);

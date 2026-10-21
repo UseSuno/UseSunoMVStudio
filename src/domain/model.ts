@@ -1,6 +1,6 @@
 // Serializable project contracts. Times are seconds at the editing boundary.
-export type TemplateId = 'article' | 'flow' | 'tilt' | 'folia-fume' | 'folia-classic' | 'folia-partita' | 'folia-cadenza' | 'folia-tilt' | 'folia-claddagh' | 'folia-monet' | 'folia-cappella' | 'folia-diorama' | 'folia-aurora' | 'folia-curtain' | 'folia-pendolo' | 'folia-tempera' | 'folia-sonnet' | 'folia-still';
-export type BackgroundId = 'common' | 'latent' | 'aurora-nebula' | 'aurora-curtain';
+export type TemplateId = 'article' | 'flow' | 'tilt' | 'folia-fume' | 'folia-classic' | 'folia-partita' | 'folia-cadenza' | 'folia-tilt' | 'folia-claddagh' | 'folia-monet' | 'folia-cappella' | 'folia-diorama' | 'folia-aurora' | 'folia-curtain' | 'folia-pendolo' | 'folia-tempera' | 'folia-sonnet' | 'folia-still' | 'folia-astral' | 'folia-kyoto' | 'folia-chroma' | 'folia-elysium' | 'folia-syzygy' | 'folia-lumiere';
+export type BackgroundId = 'common' | 'latent' | 'sora' | 'aurora-nebula' | 'aurora-curtain' | 'light-tide' | 'custom';
 export type Precision = 'imported' | 'manual' | 'estimated' | 'untimed';
 export type FontId = 'serif' | 'sans' | 'google' | 'noto-serif-sc' | 'noto-sans-sc' | 'lxgw-wenkai' | 'ma-shan-zheng' | 'dm-sans' | 'playfair-display' | 'local';
 export interface Word { text: string; start: number; end: number }
@@ -17,6 +17,8 @@ export interface Project {
   coverMimeType?: string; monetPortraitSource: 'cover' | 'custom'; monetPortraitName?: string; monetPortraitMimeType?: string;
   monetPortraitStyle: 'square' | 'rectangular'; monetPortraitOffsetX: number;
   monetAudioVisualization: boolean; monetAudioStyle: 'bar' | 'line';
+  customBackgroundName?: string; customBackgroundMimeType?: string; customBackgroundType?: 'image' | 'video' | 'gif';
+  customBackgroundBlur?: number; customBackgroundDim?: number;
   lines: LyricLine[]; source: string; audioName: string; seed: number;
 }
 export const templates: { id: TemplateId; name: string; english: string; description: string; number: string }[] = [
@@ -34,9 +36,18 @@ export const templates: { id: TemplateId; name: string; english: string; descrip
   { id: 'folia-tempera', name: '凝彩', english: 'Tempera · Folia', description: '逐字构图，印刷拼贴', number: '12' },
   { id: 'folia-sonnet', name: '商籁', english: 'Sonnet · Folia', description: '日系字效，镜头导演', number: '13' },
   { id: 'folia-still', name: '静帧', english: 'Still · Folia', description: '留白海报，低耗呈现', number: '14' },
+  { id: 'folia-astral', name: '星轨', english: 'Astral · Studio', description: '三维空间景深，天体漂移与微距拉焦', number: '15' },
+  { id: 'folia-kyoto', name: '京调', english: 'Kyoto · Studio', description: '先锋 MG 视效，反转色块与几何律动', number: '16' },
+  { id: 'folia-chroma', name: '丹青', english: 'Chroma · Studio', description: '叠层艺术画纸，矿物颜料印刷拼贴', number: '17' },
+  { id: 'folia-elysium', name: '灵境', english: 'Elysium · Folia Craft', description: '三维字域画卷，连续追焦穿梭，商籁字效与空间印迹融合', number: '18' },
+  { id: 'folia-syzygy', name: '朔望', english: 'Syzygy · Folia Craft', description: '非线性平面海报排印，多景深微视差与星尘微粒动效', number: '19' },
+  { id: 'folia-lumiere', name: '绘光', english: 'Lumiere · Folia', description: '舞台光束、体积雾效与线稿图解的歌词视效', number: '20' },
 ];
 export const backgrounds: { id: BackgroundId; name: string; description: string }[] = [
+  { id: 'custom', name: '自定义画面', description: '上传自定义图片、动态 GIF 或视频作为背景' },
+  { id: 'light-tide', name: '光潮', description: '主题色晕与缓缓起伏的折射光带' },
   { id: 'latent', name: '流体织光', description: '低频流动的封面色场' },
+  { id: 'sora', name: '空境星空', description: '极简流动的深空星辉，画面静谧纯粹' },
   { id: 'common', name: '主题空间', description: '几何与主题色背景' },
   { id: 'aurora-nebula', name: '极光星云', description: '快速流动的柔光星云' },
   { id: 'aurora-curtain', name: '极光光幕', description: '连续摆动的竖向光帘' },

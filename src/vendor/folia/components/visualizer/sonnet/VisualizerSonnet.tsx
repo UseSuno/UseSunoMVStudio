@@ -120,22 +120,26 @@ const VisualizerSonnet: React.FC<VisualizerSharedProps> = (props) => {
         [committedSeed, program, theme],
     );
 
+    const tuningRef = useRef(sonnetTuning);
+    tuningRef.current = sonnetTuning;
+
     const runtimeRef = useVisualizerPixiHost<SonnetPixiRuntime, SonnetSongContext>({
         hostRef,
         label: 'Sonnet',
-        // Only inputs that genuinely need a new WebGL context. The song is handed to the live
-        // runtime instead - see SonnetPixiRuntime.swapSong.
-        rebuildKey: [currentTime, lyricsFontScale, sonnetTuning, staticMode, transparentBackground],
+        // Only inputs that genuinely need a new WebGL context. The song and tuning are handed to the live
+        // runtime instead - see SonnetPixiRuntime.swapSong and SonnetPixiRuntime.setTuning.
+        rebuildKey: [lyricsFontScale, staticMode, transparentBackground],
         song: songContext,
         create: async (host, song, signal) => {
             const { SonnetPixiRuntime } = await import('./createSonnetPixiRuntime');
             const metadata = latestSongMetadataRef.current;
+            const currentTuning = tuningRef.current;
             const runtime = await SonnetPixiRuntime.create({
                 host,
                 songSeed: song.seed,
                 program: song.program,
                 theme: song.theme,
-                tuning: sonnetTuning,
+                tuning: currentTuning,
                 currentTime,
                 audioPower,
                 audioBands,
@@ -152,12 +156,17 @@ const VisualizerSonnet: React.FC<VisualizerSharedProps> = (props) => {
             runtime.setSongMetadata(latestSongMetadataRef.current);
             // The pause state may have changed while Pixi was importing or initializing.
             runtime.setPaused(pausedRef.current);
+            runtime.setTuning(tuningRef.current);
             return runtime;
         },
         swap: (runtime, song, signal) => runtime.swapSong(song, signal),
         destroy: runtime => runtime.destroy(),
         onFailedChange: setRuntimeFailed,
     });
+
+    useEffect(() => {
+        runtimeRef.current?.setTuning(sonnetTuning);
+    }, [sonnetTuning]);
 
     useEffect(() => {
         runtimeRef.current?.setSongMetadata(latestSongMetadataRef.current);

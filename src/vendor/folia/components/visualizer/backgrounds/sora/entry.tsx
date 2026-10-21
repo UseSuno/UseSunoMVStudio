@@ -13,7 +13,7 @@ export default defineVisualizerBackground({
     labelKey: 'options.visualizerBackgroundModeSora',
     labelFallback: 'Sora',
     render: ({ theme, isDaylight, paused }) => (
-        <div className="absolute inset-0 z-0">
+        <div data-capture-solid className="absolute inset-0 z-0" style={{ backgroundColor: isDaylight ? '#ffffff' : '#000000' }}>
             <SoraBackground theme={theme} isDaylight={isDaylight} paused={paused} />
         </div>
     ),

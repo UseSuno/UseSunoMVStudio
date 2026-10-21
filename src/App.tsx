@@ -26,13 +26,13 @@ import { clearProjectDraft, recoverProjectDraft, writeProjectDraft } from './per
 import type { SavedProject } from './persistence/project';
 import { realignTimedLinesToPlain } from './import/embedded';
 // The editor coordinates user operations; clocks and render loops live outside app state.
-const sameAssets = (a: SavedProject, b: SavedProject) => a.audio === b.audio && a.font === b.font && a.cover === b.cover && a.monetPortrait === b.monetPortrait;
+const sameAssets = (a: SavedProject, b: SavedProject) => a.audio === b.audio && a.font === b.font && a.cover === b.cover && a.monetPortrait === b.monetPortrait && a.customBackground === b.customBackground;
 const initial = () => defaultProject(parseLyrics(demoSource, 46).lines);
 const ExportModal = lazy(() => import('./components/ExportModal').then(module => ({ default: module.ExportModal })));
 export default function App() {
   const { t } = useTranslation();
   const { project, assets, commit, replace, undo, redo, canUndo, canRedo } = useProject(initial());
-  const { font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob } = assets;
+  const { font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob, customBackground: customBackgroundBlob } = assets;
   const [clock] = useState(() => new PlaybackClock());
   const [audio, setAudio] = useState<Blob | null>(null), [buffer, setBuffer] = useState<AudioBuffer | null>(null), [peaks, setPeaks] = useState<number[]>([]), [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysis>(() => emptyAudioAnalysis());
   const [ready, setReady] = useState(false), [busy, setBusy] = useState(t('app.restoring')), [saveStatus, setSaveStatus] = useState('restoring');
@@ -43,11 +43,11 @@ export default function App() {
   const [showWelcome, setShowWelcome] = useState(false), [persistEnabled, setPersistEnabled] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [preferences, setPreferences] = useState<GlobalPreferences>(() => loadPreferences());
-  const audioInput = useRef<HTMLInputElement>(null), lyricsInput = useRef<HTMLInputElement>(null), projectInput = useRef<HTMLInputElement>(null), fontInput = useRef<HTMLInputElement>(null), temperaInput = useRef<HTMLInputElement>(null), monetInput = useRef<HTMLInputElement>(null);
+  const audioInput = useRef<HTMLInputElement>(null), lyricsInput = useRef<HTMLInputElement>(null), projectInput = useRef<HTMLInputElement>(null), fontInput = useRef<HTMLInputElement>(null), temperaInput = useRef<HTMLInputElement>(null), monetInput = useRef<HTMLInputElement>(null), customBgInput = useRef<HTMLInputElement>(null);
   const translation = useRef(t); translation.current = t;
   const persisted = useRef<SavedProject | null>(null);
-  const latestSaved = useRef<SavedProject>({ project, audio, font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob });
-  latestSaved.current = { project, audio, font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob };
+  const latestSaved = useRef<SavedProject>({ project, audio, font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob, customBackground: customBackgroundBlob });
+  latestSaved.current = { project, audio, font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob, customBackground: customBackgroundBlob };
   const draftReady = useRef(false);
   const current = useRef(project); current.current = project;
   const sourceUrl = useRef(''), loadGeneration = useRef(0);
@@ -69,7 +69,7 @@ export default function App() {
       try { saved = await loadLocal(); } catch { notify(t('notice.restoreLocalFailed')); }
       persisted.current = saved;
       const p = saved ? upgradeDemoLyrics(recoverProjectDraft(saved.project)) : initial(); const blob = saved ? saved.audio ?? (p.audioName ? null : demoAudio()) : demoAudio();
-      try { const decoded = blob ? await decodeAudio(blob) : null; if (!alive) return; if (saved?.font) { await installLocalFont(saved.font, p.customFontName || 'Verse Local Font'); } replace(p, { font: saved?.font ?? null, cover: saved?.cover ?? null, monetPortrait: saved?.monetPortrait ?? null }); attach(blob, decoded, p.duration); if (!saved) { clock.seek(13.5); setShowWelcome(true); } else setPersistEnabled(true); select(p.lines[2]?.id ?? p.lines[0]?.id ?? null); }
+      try { const decoded = blob ? await decodeAudio(blob) : null; if (!alive) return; if (saved?.font) { await installLocalFont(saved.font, p.customFontName || 'Verse Local Font'); } replace(p, { font: saved?.font ?? null, cover: saved?.cover ?? null, monetPortrait: saved?.monetPortrait ?? null, customBackground: saved?.customBackground ?? null }); attach(blob, decoded, p.duration); if (!saved) { clock.seek(13.5); setShowWelcome(true); } else setPersistEnabled(true); select(p.lines[2]?.id ?? p.lines[0]?.id ?? null); }
       catch (err) { if (alive) { replace(p); notify(t('notice.audioRestoreFailed',{reason:err instanceof Error ? err.message : t('notice.reimport')})); } }
       finally { if (alive) { setBusy(''); setReady(true); } }
     })();
@@ -79,7 +79,7 @@ export default function App() {
     if (!ready || !persistEnabled) return;
     const base = persisted.current, next = latestSaved.current;
     draftReady.current = !!base && sameAssets(base, next) && writeProjectDraft(base.project, next.project);
-  }, [project, audio, fontBlob, coverBlob, monetPortraitBlob, ready, persistEnabled]);
+  }, [project, audio, fontBlob, coverBlob, monetPortraitBlob, customBackgroundBlob, ready, persistEnabled]);
   useEffect(() => {
     if (!ready || !persistEnabled) return;
     let alive = true;
@@ -104,7 +104,7 @@ export default function App() {
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', beforeUnload);
     return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onHidden); window.removeEventListener('pagehide', onPageHide); window.removeEventListener('beforeunload', beforeUnload); };
-  }, [project, audio, fontBlob, coverBlob, monetPortraitBlob, ready, persistEnabled]);
+  }, [project, audio, fontBlob, coverBlob, monetPortraitBlob, customBackgroundBlob, ready, persistEnabled]);
   // Undoing a local font choice restores its binary as well as its metadata.
   useEffect(() => { if (project.font === 'local' && fontBlob) void installLocalFont(fontBlob, project.customFontName || 'Verse Local Font').catch(error => notify(error.message)); }, [fontBlob, project.font, project.customFontName, notify]);
   useEffect(() => { void ensureProjectFont(project).catch(() => notify(t('notice.googleFontFailed'))); }, [project.font, project.customFontName, project.fontWeight, notify, t]);
@@ -146,7 +146,7 @@ export default function App() {
       const music = files.find(f => /\.(mp3|wav|m4a|aac|flac|ogg|opus)$/i.test(f.name));
       const lyrics = files.find(f => /\.(lrc|txt)$/i.test(f.name));
       const archive = files.find(f => /\.(lyricmv|json)$/i.test(f.name));
-      if (archive) { setBusy(t('notice.openingProject')); const saved = await readProject(archive); const blob = saved.audio ?? (!saved.project.audioName ? demoAudio() : null); const decoded = blob ? await decodeAudio(blob) : null; if (saved.font) await installLocalFont(saved.font, saved.project.customFontName || 'Verse Local Font'); replace(saved.project, { font: saved.font ?? null, cover: saved.cover ?? null, monetPortrait: saved.monetPortrait ?? null }); attach(blob, decoded, saved.project.duration); setCandidates([]); notify(blob ? t('notice.projectRestored') : t('notice.projectNeedsAudio')); }
+      if (archive) { setBusy(t('notice.openingProject')); const saved = await readProject(archive); const blob = saved.audio ?? (!saved.project.audioName ? demoAudio() : null); const decoded = blob ? await decodeAudio(blob) : null; if (saved.font) await installLocalFont(saved.font, saved.project.customFontName || 'Verse Local Font'); replace(saved.project, { font: saved.font ?? null, cover: saved.cover ?? null, monetPortrait: saved.monetPortrait ?? null, customBackground: saved.customBackground ?? null }); attach(blob, decoded, saved.project.duration); setCandidates([]); notify(blob ? t('notice.projectRestored') : t('notice.projectNeedsAudio')); }
       else { const duration = music ? await importAudio(music) : current.current.duration; if (lyrics) { if (lyrics.size > 1e6) throw new Error(t('notice.lyricsFileTooLarge')); applyLyrics(await lyrics.text(), duration); } if (!music && !lyrics) throw new Error(t('notice.chooseFiles')); }
       setPersistEnabled(true); setShowWelcome(false); if (!localStorage.getItem('usesuno-mv-guide-complete')) setShowTour(true);
     } catch (err) { notify(err instanceof Error ? err.message : t('notice.importFailed')); } finally { setBusy(''); }
@@ -158,7 +158,7 @@ export default function App() {
   };
   const openTimestamp = () => {
     clock.pause();
-    void saveLocal({ project: current.current, audio, font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob })
+    void saveLocal({ project: current.current, audio, font: fontBlob, cover: coverBlob, monetPortrait: monetPortraitBlob, customBackground: customBackgroundBlob })
       .then(() => { location.href = '/timestamp.html'; })
       .catch(() => notify(t('notice.timingOpenFailed')));
   };
@@ -181,6 +181,29 @@ export default function App() {
     commit(p => ({ ...p, monetPortraitSource: 'custom', monetPortraitName: file.name, monetPortraitMimeType: file.type }), { monetPortrait: file }); notify(t('notice.monetUpdated'));
   };
   const clearMonetPortrait = () => { commit(p => ({ ...p, monetPortraitSource: 'cover', monetPortraitName: undefined, monetPortraitMimeType: undefined }), { monetPortrait: null }); notify(coverBlob ? t('notice.coverRestored') : t('notice.customImageRemoved')); };
+  const applyCustomBackground = (file: File) => {
+    if (file.size > 200 * 1024 * 1024) throw new Error(t('notice.imageTooLarge'));
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+    const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+    const bgType: 'image' | 'video' | 'gif' = isVideo ? 'video' : isGif ? 'gif' : 'image';
+    commit(p => ({
+      ...p,
+      background: 'custom',
+      customBackgroundName: file.name,
+      customBackgroundMimeType: file.type || (isVideo ? 'video/mp4' : isGif ? 'image/gif' : 'image/jpeg'),
+      customBackgroundType: bgType,
+    }), { customBackground: file });
+    notify(t('notice.customBgUpdated'));
+  };
+  const clearCustomBackground = () => {
+    commit(p => ({
+      ...p,
+      customBackgroundName: undefined,
+      customBackgroundMimeType: undefined,
+      customBackgroundType: undefined,
+    }), { customBackground: null });
+    notify(t('notice.customBgCleared'));
+  };
   const fileChanged = (input: HTMLInputElement) => { const files = Array.from(input.files ?? []); input.value = ''; void handleFiles(files); };
   return <div className="studio" onDragOver={e => { e.preventDefault(); if (!busy && !modal) setDragging(true); }} onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }} onDrop={e => { e.preventDefault(); setDragging(false); if (!busy && !modal) void handleFiles(Array.from(e.dataTransfer.files)); }}>
     <AppHeader title={project.title} saveStatus={t(`app.${persistEnabled ? saveStatus : 'restoring'}`)} canUndo={canUndo} canRedo={canRedo} disabled={!ready || !!busy} rename={title => change({ title })} openProject={() => projectInput.current?.click()} importAudio={() => audioInput.current?.click()} importLyrics={() => lyricsInput.current?.click()} saveProject={() => setModal('save')} undo={undo} redo={redo} openGuide={() => setShowTour(true)} openTiming={openTimestamp} openSettings={() => setModal('settings')} openAbout={() => setModal('about')} openContact={() => setModal('contact')} openFeedback={() => setModal('feedback')} exportVideo={() => { clock.pause(); setModal('export'); }}/>
@@ -188,9 +211,10 @@ export default function App() {
       {audio && project.audioName && !candidates.length && <button className="reread-lyrics" onClick={() => { setBusy(t('editor.reread')); void embeddedLyrics(audio).then(m => { setCandidates(m.candidates); if (m.cover) { commit(p => ({ ...p, coverMimeType: m.cover!.type || undefined }), { cover: m.cover }); } if (!m.candidates.length) notify(m.cover ? t('notice.embeddedCoverOnly') : t('notice.noEmbeddedMedia')); }).catch(e => notify(e.message)).finally(() => setBusy('')); }}>{t('editor.reread')}</button>}
       {!!candidates.length && <div className="embedded"><span>{t('editor.embedded')}</span>{candidates.map((c, i) => <button key={i} onClick={() => { try { applyEmbeddedCandidate(c); setCandidates([]); } catch (err) { notify((err as Error).message); } }}>{c.label} <span>{t('editor.use')}</span></button>)}</div>}
       <LyricsPanel project={project} commit={commit} selected={selected} select={select} clock={clock} paste={() => { setText(''); setModal('paste'); }} importFile={() => lyricsInput.current?.click()} openTimestamp={openTimestamp} notify={notify}/></aside>
-      <main className="center-panel"><Stage change={change} project={project} peaks={peaks} audioAnalysis={audioAnalysis} clock={clock} fontBlob={fontBlob} coverBlob={coverBlob} monetPortraitBlob={monetPortraitBlob} onError={notify}/><Timeline project={project} peaks={peaks} clock={clock} selected={selected} select={select}/></main><Inspector project={project} change={change} importFont={() => fontInput.current?.click()} installFont={applyLocalFont} importTemperaImages={() => temperaInput.current?.click()} removeTemperaImage={removeTemperaImage} coverBlob={coverBlob} monetPortraitBlob={monetPortraitBlob} importMonetPortrait={() => monetInput.current?.click()} clearMonetPortrait={clearMonetPortrait}/></div>
+      <main className="center-panel"><Stage change={change} project={project} peaks={peaks} audioAnalysis={audioAnalysis} clock={clock} fontBlob={fontBlob} coverBlob={coverBlob} monetPortraitBlob={monetPortraitBlob} customBackgroundBlob={customBackgroundBlob} onError={notify}/><Timeline project={project} peaks={peaks} clock={clock} selected={selected} select={select}/></main><Inspector project={project} change={change} importFont={() => fontInput.current?.click()} installFont={applyLocalFont} importTemperaImages={() => temperaInput.current?.click()} removeTemperaImage={removeTemperaImage} coverBlob={coverBlob} monetPortraitBlob={monetPortraitBlob} importMonetPortrait={() => monetInput.current?.click()} clearMonetPortrait={clearMonetPortrait} customBackgroundBlob={customBackgroundBlob} importCustomBackground={() => customBgInput.current?.click()} clearCustomBackground={clearCustomBackground}/></div>
     <footer className="statusbar"><span><span className="status-dot"/>{t('editor.localStatus')}</span><span><kbd>Space</kbd> {t('editor.playHint')}</span><span>UseSuno MV Studio <span className="dim">/</span> {studioVersion}</span></footer>
     <input hidden ref={audioInput} aria-label={t('aria.audioFile')} type="file" accept="audio/*,.flac,.m4a" onChange={e => fileChanged(e.target)}/><input hidden ref={lyricsInput} aria-label={t('aria.lyricsFile')} type="file" accept=".lrc,.txt" onChange={e => fileChanged(e.target)}/><input hidden ref={projectInput} aria-label={t('aria.projectFile')} type="file" accept=".lyricmv,.json" onChange={e => fileChanged(e.target)}/><input hidden ref={fontInput} aria-label={t('aria.localFontFile')} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; const family = file.name.replace(/\.[^.]+$/, '').trim() || t('font.localFont'); void applyLocalFont(file, family).catch(error => notify(error instanceof Error ? error.message : t('notice.fontReadFailed'))); }}/><input hidden multiple ref={temperaInput} aria-label={t('aria.temperaPool')} type="file" accept="image/*,.svg" onChange={e => { const files = Array.from(e.target.files ?? []); e.target.value = ''; void addTemperaImages(files).catch(error => notify(error instanceof Error ? error.message : t('notice.temperaAddFailed'))); }}/><input hidden ref={monetInput} aria-label={t('aria.monetPortrait')} type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { try { applyMonetPortrait(file); } catch (error) { notify(error instanceof Error ? error.message : t('notice.imageReadFailed')); } } }}/>
+    <input hidden ref={customBgInput} aria-label={t('background.custom.name')} type="file" accept="image/*,video/*,.gif,.mp4,.webm,.mov" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { try { applyCustomBackground(file); } catch (error) { notify(error instanceof Error ? error.message : t('notice.imageReadFailed')); } } }}/>
     {toast && <div className="toast" role="status"><span>{toast}</span><button className="icon-button" data-tooltip={t('toast.close')} aria-label={t('toast.close')} onClick={() => setToast('')}><X size={15}/></button></div>}
     {busy && <div className="busy-overlay" role="status"><Loader2 className="spin" size={24}/><p>{busy}</p></div>}
     {dragging && <div className="drop-overlay"><Upload size={32}/><strong>{t('drop.title')}</strong><span>{t('drop.body')}</span></div>}
@@ -200,7 +224,7 @@ export default function App() {
     {modal === 'about' && <Modal title={t('editor.aboutTitle')} close={() => setModal(null)}><p className="modal-description">{t('about.local')}</p><p className="modal-description">{t('about.licenseBefore')}<strong>AGPL-3.0-only</strong>{t('about.licenseAfter')} <a className="about-link" href={projectSourceUrl} target="_blank" rel="noreferrer">{t('about.sourceRepository')}</a>.</p><p className="modal-description">{t('about.foliaBefore')}<a className="about-link" href={upstreamFoliaUrl} target="_blank" rel="noreferrer">Folia (folia-major)</a>{t('about.foliaAfter')}</p><p className="modal-description"><a className="about-link" href={homeUrl} target="_blank" rel="noreferrer">{t('about.home')}</a> · <a className="about-link" href={privacyUrl} target="_blank" rel="noreferrer">{t('about.privacy')}</a> · <a className="about-link" href={licensesUrl} target="_blank" rel="noreferrer">{t('about.notices')}</a></p></Modal>}
     {modal === 'contact' && <Modal title={t('contact.title')} close={() => setModal(null)}><p className="modal-description">{t('contact.body')}</p><a className="contact-action" href={contactUrl}>{t('contact.email')}</a><p className="contact-note">contact@usesuno.com</p></Modal>}
     {modal === 'feedback' && <Modal title={t('feedback.title')} close={() => setModal(null)}><p className="modal-description">{t('feedback.body')}</p><a className="contact-action" href={feedbackUrl} target="_blank" rel="noreferrer">{t('feedback.github')}</a><p className="contact-note">contact@usesuno.com</p></Modal>}
-    {modal === 'save' && <Modal title={t('modal.saveTitle')} close={() => setModal(null)}><p className="modal-description">{t('modal.saveDescription')}</p><label className="toggle-label package-toggle"><span>{t('modal.includeAudio')} <small>{t('modal.otherDevice')}</small></span><input type="checkbox" checked={includeAudio} onChange={e => setIncludeAudio(e.target.checked)}/></label>{project.font === 'local' && fontBlob && <label className="toggle-label package-toggle"><span>{t('modal.includeFont', { defaultValue: 'Include local font file' })}<small>{t('modal.includeFontNote', { defaultValue: 'Only include fonts you are allowed to share.' })}</small></span><input type="checkbox" checked={includeFont} onChange={e => setIncludeFont(e.target.checked)}/></label>}<p className="field-note">{t('modal.packageAssets', { defaultValue: 'The project includes its lyrics, settings, cover, and selected images.' })}</p><div className="modal-actions"><button onClick={() => downloadBlob(new Blob([toLrc(project.lines, project.offset)], { type: 'text/plain;charset=utf-8' }), `${project.title}.lrc`)}>{t('modal.lrcOnly')}</button><button className="primary" onClick={() => { void downloadProject(project, audio, includeAudio, includeFont ? fontBlob : null, coverBlob, monetPortraitBlob).then(() => { setModal(null); notify(t('app.saved')); }).catch(e => notify(e.message)); }}><ArrowDownToLine size={15}/>{t('modal.downloadProject')}</button></div></Modal>}
+    {modal === 'save' && <Modal title={t('modal.saveTitle')} close={() => setModal(null)}><p className="modal-description">{t('modal.saveDescription')}</p><label className="toggle-label package-toggle"><span>{t('modal.includeAudio')} <small>{t('modal.otherDevice')}</small></span><input type="checkbox" checked={includeAudio} onChange={e => setIncludeAudio(e.target.checked)}/></label>{project.font === 'local' && fontBlob && <label className="toggle-label package-toggle"><span>{t('modal.includeFont', { defaultValue: 'Include local font file' })}<small>{t('modal.includeFontNote', { defaultValue: 'Only include fonts you are allowed to share.' })}</small></span><input type="checkbox" checked={includeFont} onChange={e => setIncludeFont(e.target.checked)}/></label>}<p className="field-note">{t('modal.packageAssets', { defaultValue: 'The project includes its lyrics, settings, cover, and selected images.' })}</p><div className="modal-actions"><button onClick={() => downloadBlob(new Blob([toLrc(project.lines, project.offset)], { type: 'text/plain;charset=utf-8' }), `${project.title}.lrc`)}>{t('modal.lrcOnly')}</button><button className="primary" onClick={() => { void downloadProject(project, audio, includeAudio, includeFont ? fontBlob : null, coverBlob, monetPortraitBlob, customBackgroundBlob).then(() => { setModal(null); notify(t('app.saved')); }).catch(e => notify(e.message)); }}><ArrowDownToLine size={15}/>{t('modal.downloadProject')}</button></div></Modal>}
     {ready && showWelcome && <WelcomeOverlay close={() => { setShowWelcome(false); setPersistEnabled(true); }} chooseAudio={() => audioInput.current?.click()} openProject={() => projectInput.current?.click()} demo={() => { setPersistEnabled(true); setShowWelcome(false); if (!localStorage.getItem('usesuno-mv-guide-complete')) setShowTour(true); clock.seek(13.5); void clock.play().catch(error => notify(error.message)); }}/>}
     {showTour && !showWelcome && <OnboardingTour close={() => setShowTour(false)}/>}
   </div>;

@@ -11,7 +11,7 @@ function storage() {
   vi.stubGlobal('localStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) });
 }
 describe('project recovery and portable assets', () => {
-  it.each(['common', 'latent', 'aurora-nebula', 'aurora-curtain'] as const)('preserves the current Aurora background %s through recovery and project archives', async background => {
+  it.each(['common', 'latent', 'sora', 'aurora-nebula', 'aurora-curtain', 'light-tide', 'custom'] as const)('preserves the current Aurora background %s through recovery and project archives', async background => {
     storage();
     const base = { ...defaultProject([]), template: 'folia-aurora' as const, background };
     expect(validateProject(JSON.parse(JSON.stringify(base))).background).toBe(background);
@@ -20,6 +20,19 @@ describe('project recovery and portable assets', () => {
     const blob = await buildProjectArchive(base, null, false);
     const restored = await readProject(new File([blob], 'background.lyricmv'));
     expect(restored.project.background).toBe(background);
+  });
+  it('preserves custom background asset and metadata through project archives', async () => {
+    const customBg = new Blob(['fake-video-bytes'], { type: 'video/mp4' });
+    const project = { ...defaultProject([]), template: 'folia-astral' as const, background: 'custom' as const, customBackgroundName: 'bg.mp4', customBackgroundMimeType: 'video/mp4', customBackgroundType: 'video' as const, customBackgroundBlur: 4, customBackgroundDim: 0.3 };
+    const blob = await buildProjectArchive(project, null, false, null, null, null, customBg);
+    const restored = await readProject(new File([blob], 'custom-bg.lyricmv'));
+    expect(restored.project.background).toBe('custom');
+    expect(restored.project.customBackgroundName).toBe('bg.mp4');
+    expect(restored.project.customBackgroundType).toBe('video');
+    expect(restored.project.customBackgroundBlur).toBe(4);
+    expect(restored.project.customBackgroundDim).toBe(0.3);
+    expect(restored.customBackground).toBeTruthy();
+    expect(await restored.customBackground!.text()).toBe('fake-video-bytes');
   });
   it('still migrates version one Aurora projects without independent backgrounds', () => {
     expect(validateProject({ ...defaultProject([]), version: 1, template: 'folia-aurora' }).background).toBe('aurora-nebula');

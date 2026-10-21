@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import type { Project } from '../domain/model';
 import { foliaLines, foliaTheme } from './adapter';
-import { DEFAULT_DIORAMA_TUNING, DEFAULT_FUME_TUNING, DEFAULT_MONET_TUNING, DEFAULT_PENDOLO_TUNING, DEFAULT_SONNET_TUNING, DEFAULT_TEMPERA_TUNING } from '../vendor/folia/types';
+import { DEFAULT_DIORAMA_TUNING, DEFAULT_FUME_TUNING, DEFAULT_MONET_TUNING, DEFAULT_PENDOLO_TUNING, DEFAULT_SONNET_TUNING, DEFAULT_TEMPERA_TUNING, DEFAULT_LUMIERE_TUNING } from '../vendor/folia/types';
 import { getLineRenderEndTime } from '../vendor/folia/utils/lyrics/renderHints';
 import { ensureProjectFont } from '../fonts/fonts';
 import useFontsEpoch from '../vendor/folia/hooks/useFontsEpoch';
@@ -29,7 +29,9 @@ import './style.css';
 import { SongIntro } from './SongIntro';
 import { introEnd, introFrame } from './intro';
 import { exportMessage } from '../export/messages';
+const LightTideBackground = React.lazy(() => import('../refraction/LightTideBackground').then(module => ({ default: module.LightTideBackground })));
 const StudioAuroraBackground = React.lazy(() => import('../aurora/StudioAuroraBackground').then(module => ({ default: module.StudioAuroraBackground })));
+const CustomMediaBackground = React.lazy(() => import('../background/CustomMediaBackground').then(module => ({ default: module.CustomMediaBackground })));
 // A fixed-size iframe gives original window-relative layouts their own real viewport.
 class Boundary extends Component<{ children: React.ReactNode; errorLabel:string }, { error: string }> {
   state = { error: '' }; static getDerivedStateFromError(e: Error) { return { error: e.message }; }
@@ -37,7 +39,7 @@ class Boundary extends Component<{ children: React.ReactNode; errorLabel:string 
 }
 function FoliaHost() {
   const { t } = useTranslation();
-  const [project, setProject] = useState<Project | null>(null), [index, setIndex] = useState(-1), [paused, setPaused] = useState(true), [epoch, setEpoch] = useState(0), [artwork, setArtwork] = useState<{ coverUrl: string | null; portraitUrl: string | null }>({ coverUrl: null, portraitUrl: null });
+  const [project, setProject] = useState<Project | null>(null), [index, setIndex] = useState(-1), [paused, setPaused] = useState(true), [epoch, setEpoch] = useState(0), [artwork, setArtwork] = useState<{ coverUrl: string | null; portraitUrl: string | null; customBackgroundUrl: string | null }>({ coverUrl: null, portraitUrl: null, customBackgroundUrl: null });
   const time = useMotionValue(0), power = useMotionValue(0), bass = useMotionValue(0), lowMid = useMotionValue(0), mid = useMotionValue(0), vocal = useMotionValue(0), treble = useMotionValue(0);
   const fontsEpoch = useFontsEpoch();
   const audioBands = useMemo(() => ({ bass, lowMid, mid, vocal, treble }), [bass, lowMid, mid, vocal, treble]);
@@ -49,6 +51,22 @@ function FoliaHost() {
     return time.on('change', sync);
   }, [project, time]);
   const lines = useMemo(() => project ? foliaLines(project) : [], [project]); const theme = useMemo(() => project ? foliaTheme(project) : null, [project]);
+  const fumeTuning = useMemo(() => project ? ({ ...DEFAULT_FUME_TUNING, cameraSpeed: project.intensity, disableGeometricBackground: false }) : DEFAULT_FUME_TUNING, [project?.intensity]);
+  const dioramaTuning = useMemo(() => project ? ({ ...DEFAULT_DIORAMA_TUNING, cameraSpeed: project.intensity, motionAmount: project.intensity, audioReactivity: project.audioReactivity === 'off' ? 0 : project.audioReactivityAmount * (project.audioReactivity === 'rhythmic' ? .8 : .38) }) : DEFAULT_DIORAMA_TUNING, [project?.intensity, project?.audioReactivity, project?.audioReactivityAmount]);
+  const monetTuning = useMemo(() => project ? ({ ...DEFAULT_MONET_TUNING, showAudioVisualization: project.monetAudioVisualization, audioStyle: project.monetAudioStyle, portraitSource: project.monetPortraitSource, portraitStyle: project.monetPortraitStyle, portraitOffsetX: project.monetPortraitOffsetX, showPortraitDragHanger: false }) : DEFAULT_MONET_TUNING, [project?.monetAudioVisualization, project?.monetAudioStyle, project?.monetPortraitSource, project?.monetPortraitStyle, project?.monetPortraitOffsetX]);
+  const pendoloTuning = useMemo(() => project ? ({ ...DEFAULT_PENDOLO_TUNING, tickSnappiness: Math.max(.6, project.intensity * 2), activeScale: 1.15 + project.intensity * .1 }) : DEFAULT_PENDOLO_TUNING, [project?.intensity]);
+  const sonnetTuning = useMemo(() => project ? ({ ...DEFAULT_SONNET_TUNING, cameraIntensity: project.intensity, typographyMotion: project.intensity }) : DEFAULT_SONNET_TUNING, [project?.intensity]);
+  const temperaTuning = useMemo(() => project ? ({ ...DEFAULT_TEMPERA_TUNING, cameraIntensity: project.intensity, glyphMotion: project.intensity, layerImages: project.temperaLayerImages }) : DEFAULT_TEMPERA_TUNING, [project?.intensity, project?.temperaLayerImages]);
+  const lumiereTuning = useMemo(() => project ? ({
+    ...DEFAULT_LUMIERE_TUNING,
+    lightIntensity: project.intensity,
+    audioResponse: project.audioReactivity === 'off' ? 0 : project.audioReactivityAmount,
+  }) : DEFAULT_LUMIERE_TUNING, [project?.intensity, project?.audioReactivity, project?.audioReactivityAmount]);
+  const backgroundProp = useMemo(() => {
+    if (!project) return { mode: 'paper' };
+    const customAurora = project.background === 'aurora-nebula' || project.background === 'aurora-curtain';
+    return customAurora || project.background === 'light-tide' || project.background === 'custom' ? { transparent: true } : { mode: project.background };
+  }, [project?.background]);
   const refs = useRef({ lines, project, previous: 0 }); refs.current.lines = lines; refs.current.project = project;
   useEffect(() => { if (project) void ensureProjectFont(project); }, [project?.font, project?.customFontName, project?.fontWeight]);
   useEffect(() => { const sync=(event:StorageEvent)=>{if(event.key==='verse-studio-language'&&event.newValue)void i18n.changeLanguage(event.newValue);};addEventListener('storage',sync);return()=>removeEventListener('storage',sync);},[]);
@@ -64,7 +82,7 @@ function FoliaHost() {
       if (e.origin !== location.origin || e.source !== parent || !e.data || typeof e.data !== 'object') return;
       if (e.data.type === 'verse:export-reset') { setEpoch(value => value + 1); return; }
       if (e.data.type === 'verse:project') { setProject(e.data.project); return; }
-      if (e.data.type === 'verse:artwork') { setArtwork({ coverUrl: typeof e.data.coverUrl === 'string' ? e.data.coverUrl : null, portraitUrl: typeof e.data.portraitUrl === 'string' ? e.data.portraitUrl : null }); return; }
+      if (e.data.type === 'verse:artwork') { setArtwork({ coverUrl: typeof e.data.coverUrl === 'string' ? e.data.coverUrl : null, portraitUrl: typeof e.data.portraitUrl === 'string' ? e.data.portraitUrl : null, customBackgroundUrl: typeof e.data.customBackgroundUrl === 'string' ? e.data.customBackgroundUrl : null }); return; }
       if (e.data.type === 'verse:font' && e.data.buffer instanceof ArrayBuffer) { const family = typeof e.data.family === 'string' && e.data.family ? e.data.family : 'Verse Local Font'; const url = URL.createObjectURL(new Blob([e.data.buffer])); const style = document.createElement('style'); style.dataset.exportFont = ''; style.textContent = `@font-face{font-family:${JSON.stringify(family)};src:url(${JSON.stringify(url)})}`; document.head.querySelectorAll('style[data-export-font]').forEach(node => { URL.revokeObjectURL((node as HTMLStyleElement).dataset.url || ''); node.remove(); }); style.dataset.url = url; document.head.appendChild(style); const face = new FontFace(family, e.data.buffer); void face.load().then(loaded => { document.fonts.add(loaded); setEpoch(value => value + 1); }); return; }
       if (e.data.type === 'verse:export-begin' || e.data.type === 'verse:export-step' || e.data.type === 'verse:export-end' || e.data.type === 'verse:capture' || e.data.type === 'verse:collect') {
         const data = e.data, requestId = data.requestId;
@@ -79,9 +97,9 @@ function FoliaHost() {
               parent.postMessage({ type: 'verse:capture-result', requestId, bitmap: value.bitmap, workerFrame: value.frame, captureBackend: value.backend }, location.origin, value.bitmap ? [value.bitmap] : layerBitmaps(value.frame!.layers));
               return;
             }
-            if (data.type === 'verse:export-begin') { releaseJobs(); releaseDeferredPaperDraws(); layeredSession = data.captureMethod === 'layered'; textCache = data.textCache === true; setLayeredPresentation(layeredSession); if (layeredSession) layeredCapture ??= await import('./layeredCapture'); layeredCapture?.releaseLayeredCapture(); directSession = ['direct', 'worker'].includes(data.captureMethod) && !!refs.current.project && canExportDirect(refs.current.project); if (data.captureMethod === 'worker' && directSession) fumeWorkerCapture ??= await import('./workerCapture'); workerSession = data.captureMethod === 'worker' && directSession; fumeWorkerCapture?.setFumeExternalPainting(workerSession); releaseDirectCapture(); releaseNativeCapture(); frameClock.begin(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); }
+            if (data.type === 'verse:export-begin') { releaseJobs(); releaseDeferredPaperDraws(); layeredSession = data.captureMethod === 'layered'; textCache = data.textCache === true; setLayeredPresentation(layeredSession); if (layeredSession) layeredCapture ??= await import('./layeredCapture'); layeredCapture?.releaseLayeredCapture(); directSession = ['direct', 'worker'].includes(data.captureMethod) && !!refs.current.project && canExportDirect(refs.current.project); if (data.captureMethod === 'worker' && directSession) fumeWorkerCapture ??= await import('./workerCapture'); workerSession = data.captureMethod === 'worker' && directSession; fumeWorkerCapture?.setFumeExternalPainting(workerSession); releaseDirectCapture(); releaseNativeCapture(); frameClock.begin(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); window.dispatchEvent(new Event('verse:export-begin')); }
             if (data.type === 'verse:export-end') { releaseJobs(); releaseDeferredPaperDraws();
-              directSession = false; workerSession = false; layeredSession = false; setLayeredPresentation(false); layeredCapture?.releaseLayeredCapture(); fumeWorkerCapture?.setFumeExternalPainting(false); releaseDirectCapture(); releaseNativeCapture(); frameClock.end(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps();
+              directSession = false; workerSession = false; layeredSession = false; setLayeredPresentation(false); layeredCapture?.releaseLayeredCapture(); fumeWorkerCapture?.setFumeExternalPainting(false); releaseDirectCapture(); releaseNativeCapture(); frameClock.end(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); window.dispatchEvent(new Event('verse:export-end'));
               // The original renderer resumes with its native clock after the export session.
               flushSync(() => setEpoch(value => value + 1));
             }
@@ -107,8 +125,8 @@ function FoliaHost() {
               let timedOut = false;
               const stopTimeout = visibleTimeout(() => { timedOut = true; }, 14000, window, frameClock.realNow);
               try {
-                const needsCanvas = ['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-tempera', 'folia-sonnet'].includes(refs.current.project?.template ?? '');
-                const needsRuntime = ['folia-sonnet', 'folia-tempera'].includes(refs.current.project?.template ?? '');
+                const needsCanvas = ['folia-fume', 'folia-diorama', 'folia-aurora', 'folia-tempera', 'folia-sonnet', 'folia-astral', 'folia-elysium', 'folia-syzygy'].includes(refs.current.project?.template ?? '');
+                const needsRuntime = ['folia-sonnet', 'folia-tempera', 'folia-elysium', 'folia-syzygy'].includes(refs.current.project?.template ?? '');
                 while ((data.captureMethod === 'worker' && !document.querySelector('canvas[data-fume-painter]')) || (needsRuntime && !document.querySelector('canvas[data-capture-ready="true"]')) || (needsCanvas && !document.querySelector('[data-capture-renderer] canvas')) || !document.querySelector('[data-capture-renderer]') || document.querySelector('.folia-loading, [data-capture-ready="false"]')) {
                   if (timedOut) throw new Error(exportMessage('captureTimeout'));
                   await frameClock.paint();
@@ -119,6 +137,7 @@ function FoliaHost() {
               await waitUntilVisible();
               frameClock.hold();
               window.dispatchEvent(new Event('verse:before-capture'));
+              if (frameClock.exporting) remember();
               const root = document.getElementById('folia-root')!;
               if (data.captureMethod === 'worker' && directSession) {
                 const workerFrame = await fumeWorkerCapture!.captureWorkerFrame(root);
@@ -191,15 +210,16 @@ function FoliaHost() {
   const Renderer = getStudioVisualizer(project.template).renderer;
   const customAurora = project.background === 'aurora-nebula' || project.background === 'aurora-curtain';
   const renderer = <Renderer key={`${project.template}-${epoch}-${fontsEpoch}-${introActive}-${lines.length === 0}`} currentTime={time} currentLineIndex={index} lines={lines} theme={theme} audioPower={power} audioBands={audioBands} paused={paused} showText={!introActive && lines.length > 0} seed={project.seed} lyricsFontScale={project.fontScale} isDaylight={project.palette === 'paper'} songTitle={project.title} songArtist={project.artist} coverUrl={artwork.coverUrl} monetPortraitImage={artwork.portraitUrl ? { id: 'studio-monet-portrait', name: project.monetPortraitName || t('folia.customImage'), url: artwork.portraitUrl } : null} isPlayerChromeHidden hideTranslationSubtitle showSubtitleTranslation={false}
-    background={customAurora ? { transparent: true } : { mode: project.background }}
-    fumeTuning={{ ...DEFAULT_FUME_TUNING, cameraSpeed: project.intensity, disableGeometricBackground: false }}
-    dioramaTuning={{ ...DEFAULT_DIORAMA_TUNING, cameraSpeed: project.intensity, motionAmount: project.intensity, audioReactivity: project.audioReactivity === 'off' ? 0 : project.audioReactivityAmount * (project.audioReactivity === 'rhythmic' ? .8 : .38) }}
-    monetTuning={{ ...DEFAULT_MONET_TUNING, showAudioVisualization: project.monetAudioVisualization, audioStyle: project.monetAudioStyle, portraitSource: project.monetPortraitSource, portraitStyle: project.monetPortraitStyle, portraitOffsetX: project.monetPortraitOffsetX, showPortraitDragHanger: false }}
-    pendoloTuning={{ ...DEFAULT_PENDOLO_TUNING, tickSnappiness: Math.max(.6, project.intensity * 2), activeScale: 1.15 + project.intensity * .1 }}
-    sonnetTuning={{ ...DEFAULT_SONNET_TUNING, cameraIntensity: project.intensity, typographyMotion: project.intensity }}
-    temperaTuning={{ ...DEFAULT_TEMPERA_TUNING, cameraIntensity: project.intensity, glyphMotion: project.intensity, layerImages: project.temperaLayerImages }}
+    background={backgroundProp}
+    fumeTuning={fumeTuning}
+    dioramaTuning={dioramaTuning}
+    monetTuning={monetTuning}
+    pendoloTuning={pendoloTuning}
+    sonnetTuning={sonnetTuning}
+    temperaTuning={temperaTuning}
+    lumiereTuning={lumiereTuning}
     onLyricLineSeek={lyricTime => parent.postMessage({ type: 'verse:seek', time: lyricTime + project.offset }, location.origin)}/>;
-  return <Boundary errorLabel={t('folia.loadFailed')} key={project.template}><Suspense fallback={<div className="folia-loading">{t('folia.loading')}</div>}><div className="relative h-full w-full overflow-hidden">{customAurora ? <div data-capture-background style={{ display: 'contents' }}><StudioAuroraBackground mode={project.background === 'aurora-curtain' ? 'aurora-curtain' : 'aurora-nebula'} currentTime={time} audioBands={audioBands} theme={theme} isDaylight={project.palette === 'paper'}/></div> : null}<div data-capture-renderer className="absolute inset-0">{renderer}</div><SongIntro project={project} time={time} coverUrl={artwork.coverUrl}/></div></Suspense></Boundary>;
+  return <Boundary errorLabel={t('folia.loadFailed')} key={project.template}><Suspense fallback={<div className="folia-loading">{t('folia.loading')}</div>}><div className="relative h-full w-full overflow-hidden">{project.background === 'custom' ? <div data-capture-background style={{ display: 'contents' }}><CustomMediaBackground url={artwork.customBackgroundUrl} mimeType={project.customBackgroundMimeType} mediaType={project.customBackgroundType} currentTime={time} paused={paused} theme={theme} isDaylight={project.palette === 'paper'} blur={project.customBackgroundBlur} dim={project.customBackgroundDim}/></div> : null}{project.background === 'light-tide' ? <div data-capture-background style={{ display: 'contents' }}><LightTideBackground currentTime={time} theme={theme} audioBands={audioBands} isDaylight={project.palette === 'paper'}/></div> : null}{customAurora ? <div data-capture-background style={{ display: 'contents' }}><StudioAuroraBackground mode={project.background === 'aurora-curtain' ? 'aurora-curtain' : 'aurora-nebula'} currentTime={time} audioBands={audioBands} theme={theme} isDaylight={project.palette === 'paper'}/></div> : null}<div data-capture-renderer className="absolute inset-0">{renderer}</div><SongIntro project={project} time={time} coverUrl={artwork.coverUrl}/></div></Suspense></Boundary>;
 }
 const root = createRoot(document.getElementById('folia-root')!);
 root.render(<FoliaHost/>);

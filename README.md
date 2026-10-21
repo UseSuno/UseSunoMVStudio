@@ -8,8 +8,8 @@ Audio, lyrics, and project assets are processed locally, and projects are saved 
 
 ## Features
 
-- **14 animations**: Fume, Classic, Cadenza, Partita, Tilt, Claddagh, Monet, Cappella, Diorama, Aurora Traverse, Pendolo, Tempera, Sonnet, and Still. Includes Folia-derived templates and Studio's word-level 3D Aurora Traverse.
-- **4 backgrounds**: Theme space, Fluid light, Aurora nebula, and Aurora curtain, freely combined with animations.
+- **20 animations**: Fume, Classic, Cadenza, Partita, Tilt, Claddagh, Monet, Cappella, Diorama, Aurora Traverse, Pendolo, Tempera, Sonnet, Still, Astral (星轨), Kyoto (京调), Chroma (丹青), Elysium (灵境), Syzygy (朔望), and Lumiere (绘光).
+- **7 backgrounds**: Custom media (image, animated GIF, video), Theme space, Fluid light, Aurora nebula, Aurora curtain, Light tide, and Space starlight, freely combined with animations.
 - **Lyrics editing**: paste text, import LRC/TXT, or read embedded lyrics from the audio; edit, split, merge, delete, clear, and undo line by line. A dedicated timing workspace supports word-level tapping, global offset, and phrase layout.
 - **Framing settings**: 16:9, 9:16, and 1:1, fonts and typography, color mood, audio response, and an automatic intro that can be turned off in the settings panel. Supports online and local fonts.
 - **Video export**: 720p / 1080p at 30 fps, MP4 or WebM, for the full song or a selected range; frame-by-frame export and real-time recording.
@@ -53,7 +53,7 @@ Browser storage is not a permanent backup: clearing site data, using private win
 
 ### Frame-by-frame export
 
-The animation advances at fixed timestamps and the video is encoded without waiting for the audio to play through. All 14 templates provide a frame-by-frame path, but processing time depends on the template, background, font, resolution, and device. **It is not guaranteed to be faster than real time, nor uniform across templates.**
+The animation advances at fixed timestamps and the video is encoded without waiting for the audio to play through. All 20 templates provide a frame-by-frame path, but processing time depends on the template, background, font, resolution, and device. **It is not guaranteed to be faster than real time, nor uniform across templates.**
 
 There is no hardcoded song length limit. Long videos are still constrained by practical limits such as available memory, browser encoders, and file size. The end time shows at most two decimal places; a default full-song export keeps the audio's original precise duration.
 

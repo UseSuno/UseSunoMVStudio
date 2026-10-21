@@ -190,6 +190,7 @@ const SoraBackground: React.FC<SoraBackgroundProps> = ({ theme, isDaylight, paus
       if (bufferInfo.attribs && bufferInfo.attribs.a_index && bufferInfo.attribs.a_index.buffer) {
           gl.deleteBuffer(bufferInfo.attribs.a_index.buffer);
       }
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, []);
 

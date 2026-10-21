@@ -39,8 +39,8 @@ export function SongIntro({ project, time, coverUrl }: { project: Project; time:
       ctx.globalAlpha = frame.opacity;
       const unit = Math.min(width, height);
       const c = frame.compact;
-      const editorial = ['folia-partita', 'folia-cadenza', 'folia-sonnet', 'folia-still'].includes(project.template);
-      const spatial = ['folia-diorama', 'folia-aurora', 'folia-curtain', 'folia-fume', 'folia-tilt'].includes(project.template);
+      const editorial = ['folia-partita', 'folia-cadenza', 'folia-sonnet', 'folia-still', 'folia-kyoto', 'folia-chroma', 'folia-elysium', 'folia-syzygy', 'folia-lumiere'].includes(project.template);
+      const spatial = ['folia-diorama', 'folia-aurora', 'folia-curtain', 'folia-fume', 'folia-tilt', 'folia-astral'].includes(project.template);
       const maxWidth = width * (.82 - c * .16);
       let size = unit * (editorial ? .102 : .09) * (1 - c * .42);
       let titleLines: string[] = [], artistLines: string[] = [];

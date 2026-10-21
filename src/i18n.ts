@@ -1052,6 +1052,76 @@ for (const [locale, [recommended, framePreferred, realtimePreferred]] of Object.
   'export.realtimePreferred': realtimePreferred,
 });
 
+const lightTideCopy: Record<string, [string, string]> = {
+  en: ['Light tide', 'Theme-colored haze and gently refracting ribbons'],
+  'zh-CN': ['光潮', '主题色晕与缓缓起伏的折射光带'], 'zh-TW': ['光潮', '主題色暈與緩緩起伏的折射光帶'],
+  id: ['Pasang cahaya', 'Kabut warna tema dan pita cahaya yang mengalun'],
+  hi: ['प्रकाश तरंग', 'थीम के रंगों की धुंध और लहराती प्रकाश पट्टियाँ'],
+  'pt-BR': ['Maré de luz', 'Névoa nas cores do tema e faixas de luz suaves'],
+  de: ['Lichtflut', 'Themenfarbener Dunst und sanft schwingende Lichtbänder'],
+  fil: ['Alon ng liwanag', 'Ulap ng kulay ng tema at banayad na mga laso ng liwanag'],
+  ur: ['روشنی کی لہر', 'تھیم کے رنگوں کی دھند اور لہراتی روشنی'],
+  ru: ['Световой прилив', 'Дымка в цветах темы и плавные световые ленты'],
+  vi: ['Thủy triều ánh sáng', 'Sương màu chủ đề và những dải sáng nhẹ nhàng'],
+};
+const soraCopy: Record<string, [string, string]> = {
+  en: ['Sora', 'A quiet, slow-drifting starry sky with a clean canvas'],
+  'zh-CN': ['空境星空', '极简流动的深空星辉，画面静谧纯粹'],
+  'zh-TW': ['空境星空', '極簡流動的深空星輝，畫面靜謐純粹'],
+  id: ['Sora', 'Hamparan bintang yang bergerak pelan dengan tampilan paling bersih'],
+  hi: ['सोरा (ताराक्षेत्र)', 'शांत, धीमी गति से तैरता हुआ तारों भरा आकाश'],
+  'pt-BR': ['Sora', 'Céu estrelado calmo e em movimento lento, com visual limpo'],
+  de: ['Sora', 'Ein ruhiger, langsam schwebender Sternenhimmel mit sauberem Bild'],
+  fil: ['Sora', 'Isang tahimik at dahan-dahang gumagalaw na mabituing kalangitan'],
+  ur: ['سورا (ستاروں بھرا آسمان)', 'ایک پرسکون اور مدھم حرکت کرتا ستاروں بھرا آسمان'],
+  ru: ['Сора', 'Спокойное, медленно плывущее звездное небо и чистый фон'],
+  vi: ['Sora', 'Bầu trời sao êm đềm chuyển động chậm rãi, khung hình thuần khiết'],
+};
+const customBgCopy: Record<string, {
+  name: string; description: string; noMedia: string; upload: string; replace: string; remove: string;
+  hint: string; img: string; gif: string; vid: string; blur: string; dim: string; updated: string; cleared: string;
+  presetTab: string; customTab: string; formats: string;
+}> = {
+  en: { presetTab: 'Presets', customTab: 'Custom', formats: 'Supports JPG, PNG, WebP, GIF, or MP4 video', name: 'Custom media', description: 'Custom image, animated GIF, or video background', noMedia: 'No media', upload: 'Upload media', replace: 'Replace', remove: 'Remove', hint: 'Image, GIF, or video', img: 'Image', gif: 'Animated GIF', vid: 'Video', blur: 'Blur', dim: 'Dim / Contrast', updated: 'Custom background updated', cleared: 'Custom background removed' },
+  'zh-CN': { presetTab: '预设', customTab: '自定义', formats: '支持 JPG、PNG、WebP、GIF 或 MP4 视频', name: '自定义画面', description: '上传自定义图片、动态 GIF 或视频作为背景', noMedia: '未选择媒体', upload: '上传画面', replace: '替换画面', remove: '清除', hint: '图片、GIF 或视频', img: '静态图片', gif: '动态 GIF', vid: '视频背景', blur: '背景模糊', dim: '暗角遮罩', updated: '自定义背景已更新', cleared: '自定义背景已清除' },
+  'zh-TW': { presetTab: '預設', customTab: '自訂', formats: '支援 JPG、PNG、WebP、GIF 或 MP4 影片', name: '自訂畫面', description: '上傳自訂圖片、動態 GIF 或影片作為背景', noMedia: '未選擇媒體', upload: '上傳畫面', replace: '替換畫面', remove: '清除', hint: '圖片、GIF 或影片', img: '靜態圖片', gif: '動態 GIF', vid: '影片背景', blur: '背景模糊', dim: '暗角遮罩', updated: '自訂背景已更新', cleared: '自訂背景已清除' },
+  id: { presetTab: 'Preset', customTab: 'Kustom', formats: 'Mendukung JPG, PNG, WebP, GIF, atau video MP4', name: 'Media kustom', description: 'Gambar kustom, GIF animasi, atau latar video', noMedia: 'Tidak ada media', upload: 'Unggah media', replace: 'Ganti', remove: 'Hapus', hint: 'Gambar, GIF, atau video', img: 'Gambar', gif: 'GIF Animasi', vid: 'Video', blur: 'Buram', dim: 'Peredup / Kontras', updated: 'Latar kustom diperbarui', cleared: 'Latar kustom dihapus' },
+  hi: { presetTab: 'प्रीसेट', customTab: 'कस्टम', formats: 'JPG, PNG, WebP, GIF या MP4 वीडियो समर्थित', name: 'कस्टम मीडिया', description: 'कस्टम चित्र, एनिमेटed GIF या वीडियो पृष्ठभूमि', noMedia: 'कोई मीडिया नहीं', upload: 'मीडिया अपलोड करें', replace: 'बदलें', remove: 'हटाएं', hint: 'चित्र, GIF या वीडियो', img: 'चित्र', gif: 'एनिमेटेड GIF', vid: 'वीडियो', blur: 'धुंधलापन', dim: 'कंट्रास्ट / डिम', updated: 'कस्टम पृष्ठभूमि अपडेट की गई', cleared: 'कस्टम पृष्ठभूमि हटा दी गई' },
+  'pt-BR': { presetTab: 'Predefinições', customTab: 'Personalizado', formats: 'Suporta JPG, PNG, WebP, GIF ou vídeo MP4', name: 'Mídia personalizada', description: 'Imagem, GIF animado ou vídeo como plano de fundo', noMedia: 'Sem mídia', upload: 'Enviar mídia', replace: 'Substituir', remove: 'Remover', hint: 'Imagem, GIF ou vídeo', img: 'Imagem', gif: 'GIF animado', vid: 'Vídeo', blur: 'Desfoque', dim: 'Escurecimento / Contraste', updated: 'Plano de fundo atualizado', cleared: 'Plano de fundo removido' },
+  de: { presetTab: 'Vorlagen', customTab: 'Benutzerdefiniert', formats: 'Unterstützt JPG, PNG, WebP, GIF oder MP4-Video', name: 'Benutzerdefinierte Medien', description: 'Eigenes Bild, animiertes GIF oder Video als Hintergrund', noMedia: 'Keine Medien', upload: 'Medien hochladen', replace: 'Ersetzen', remove: 'Entfernen', hint: 'Bild, GIF oder Video', img: 'Bild', gif: 'Animiertes GIF', vid: 'Video', blur: 'Weichzeichnen', dim: 'Abdunklung / Kontrast', updated: 'Hintergrund aktualisiert', cleared: 'Hintergrund entfernt' },
+  fil: { presetTab: 'Preset', customTab: 'Pasadya', formats: 'Sumusuporta sa JPG, PNG, WebP, GIF, o MP4 video', name: 'Pasadyang media', description: 'Pasadyang larawan, animated GIF, o video background', noMedia: 'Walang media', upload: 'Mag-upload ng media', replace: 'Palitan', remove: 'Alisin', hint: 'Larawan, GIF, o video', img: 'Larawan', gif: 'Animated GIF', vid: 'Video', blur: 'Blur', dim: 'Dilim / Kontras', updated: 'Na-update ang pasadyang background', cleared: 'Inalis ang pasadyang background' },
+  ur: { presetTab: 'پری سیٹ', customTab: 'کسٹم', formats: 'JPG, PNG, WebP, GIF یا MP4 ویڈیو سپورٹ کرتا ہے', name: 'کسٹم میڈیا', description: 'کسٹم تصویر، متحرک GIF، یا ویڈیو پس منظر', noMedia: 'کوئی میڈیا نہیں', upload: 'میڈیا اپ لوڈ کریں', replace: 'تبدیل کریں', remove: 'ہٹائیں', hint: 'تصویر، GIF، یا ویڈیو', img: 'تصویر', gif: 'متحرک GIF', vid: 'ویڈیو', blur: 'دھندلا پن', dim: 'مدھم / کنٹراسٹ', updated: 'کسٹم پس منظر اپ ڈیٹ ہو گیا', cleared: 'کسٹم پس منظر ہٹا دیا گیا' },
+  ru: { presetTab: 'Пресеты', customTab: 'Свой фон', formats: 'Поддерживает JPG, PNG, WebP, GIF или видео MP4', name: 'Свой фон', description: 'Своё изображение, анимация GIF или видео на фоне', noMedia: 'Нет медиа', upload: 'Загрузить медиа', replace: 'Заменить', remove: 'Удалить', hint: 'Картинка, GIF или видео', img: 'Картинка', gif: 'Анимация GIF', vid: 'Видео', blur: 'Размытие', dim: 'Затемнение / Контраст', updated: 'Свой фон обновлен', cleared: 'Свой фон удален' },
+  vi: { presetTab: 'Mặc định', customTab: 'Tùy chỉnh', formats: 'Hỗ trợ JPG, PNG, WebP, GIF hoặc video MP4', name: 'Phương tiện tùy chỉnh', description: 'Ảnh tùy chỉnh, ảnh GIF động hoặc video làm nền', noMedia: 'Chưa có phương tiện', upload: 'Tải phương tiện lên', replace: 'Thay thế', remove: 'Xóa', hint: 'Ảnh, GIF hoặc video', img: 'Ảnh tĩnh', gif: 'Ảnh GIF động', vid: 'Video nền', blur: 'Làm mờ', dim: 'Lớp mờ tối', updated: 'Đã cập nhật nền tùy chỉnh', cleared: 'Đã xóa nền tùy chỉnh' },
+};
+
+for (const [locale, resource] of Object.entries(resources)) {
+  const [name, description] = lightTideCopy[locale] ?? lightTideCopy.en;
+  Object.assign(resource.translation, { 'background.light-tide.name': name, 'background.light-tide.description': description });
+  const [soraName, soraDescription] = soraCopy[locale] ?? soraCopy.en;
+  Object.assign(resource.translation, { 'background.sora.name': soraName, 'background.sora.description': soraDescription });
+  const c = customBgCopy[locale] ?? customBgCopy.en;
+  Object.assign(resource.translation, {
+    'inspector.bgPresetTab': c.presetTab,
+    'inspector.bgCustomTab': c.customTab,
+    'inspector.customBgFormats': c.formats,
+    'background.custom.name': c.name,
+    'background.custom.description': c.description,
+    'inspector.noCustomBg': c.noMedia,
+    'inspector.customBgUpload': c.upload,
+    'inspector.customBgReplace': c.replace,
+    'inspector.customBgRemove': c.remove,
+    'inspector.customBgHint': c.hint,
+    'inspector.bgTypeImage': c.img,
+    'inspector.bgTypeGif': c.gif,
+    'inspector.bgTypeVideo': c.vid,
+    'inspector.customBgBlur': c.blur,
+    'inspector.customBgDim': c.dim,
+    'notice.customBgUpdated': c.updated,
+    'notice.customBgCleared': c.cleared,
+  });
+}
+
 void i18n.use(LanguageDetector).use(initReactI18next).init({ resources, fallbackLng:'en', supportedLngs:languages.map(([code]) => code), interpolation:{escapeValue:false}, detection:{order:['localStorage','navigator'],caches:['localStorage'],lookupLocalStorage:'verse-studio-language'} });
 const syncDocumentLanguage = (language: string) => { document.documentElement.lang = languages.some(([code]) => code === language) ? language : 'en'; document.documentElement.dir = language === 'ur' ? 'rtl' : 'ltr'; };
 syncDocumentLanguage(i18n.resolvedLanguage || i18n.language || 'en'); i18n.on('languageChanged', syncDocumentLanguage);

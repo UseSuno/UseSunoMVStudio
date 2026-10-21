@@ -1011,6 +1011,13 @@ export class SonnetPixiRuntime {
         return typeof value === 'number' && Number.isFinite(value) ? value : 1;
     }
 
+    /** Hot-swaps the tuning settings every time tuning changes, without recreating the Pixi context. */
+    setTuning(tuning: SonnetTuning) {
+        if (this.destroyed) return;
+        this.options.tuning = tuning;
+        if (this.options.paused) this.renderOnce();
+    }
+
     /** Hot-swaps the modulation map every time a mod slider moves, without recreating the Pixi context. */
     setModulation(modulation: Record<string, number>) {
         if (this.destroyed) return;
