@@ -40,6 +40,7 @@ export default function App() {
   const [toast, setToast] = useState(''), [dragging, setDragging] = useState(false), [includeAudio, setIncludeAudio] = useState(true), [includeFont, setIncludeFont] = useState(false);
   const [candidates, setCandidates] = useState<EmbeddedCandidate[]>([]);
   const [exportArtifact, setExportArtifact] = useState<ExportArtifact | null>(null);
+  const [trimTarget, setTrimTarget] = useState<File | null>(null);
   const [showWelcome, setShowWelcome] = useState(false), [persistEnabled, setPersistEnabled] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [preferences, setPreferences] = useState<GlobalPreferences>(() => loadPreferences());
@@ -181,17 +182,21 @@ export default function App() {
     commit(p => ({ ...p, monetPortraitSource: 'custom', monetPortraitName: file.name, monetPortraitMimeType: file.type }), { monetPortrait: file }); notify(t('notice.monetUpdated'));
   };
   const clearMonetPortrait = () => { commit(p => ({ ...p, monetPortraitSource: 'cover', monetPortraitName: undefined, monetPortraitMimeType: undefined }), { monetPortrait: null }); notify(coverBlob ? t('notice.coverRestored') : t('notice.customImageRemoved')); };
-  const applyCustomBackground = (file: File) => {
-    if (file.size > 200 * 1024 * 1024) throw new Error(t('notice.imageTooLarge'));
-    const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
-    const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+  const applyCustomBackground = (file: File | Blob, name?: string, durationLimit?: number) => {
+    const fileName = name || (file instanceof File ? file.name : 'custom-background');
+    const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|m4v)$/i.test(fileName);
+    const isGif = file.type === 'image/gif' || /\.gif$/i.test(fileName);
+    if (!isVideo && file.size > 20 * 1024 * 1024) {
+      throw new Error(t('notice.customBgImageTooLarge'));
+    }
     const bgType: 'image' | 'video' | 'gif' = isVideo ? 'video' : isGif ? 'gif' : 'image';
     commit(p => ({
       ...p,
       background: 'custom',
-      customBackgroundName: file.name,
+      customBackgroundName: fileName,
       customBackgroundMimeType: file.type || (isVideo ? 'video/mp4' : isGif ? 'image/gif' : 'image/jpeg'),
       customBackgroundType: bgType,
+      customBackgroundDuration: isVideo ? (durationLimit !== undefined ? durationLimit : (p.customBackgroundDuration ?? 15)) : undefined,
     }), { customBackground: file });
     notify(t('notice.customBgUpdated'));
   };
@@ -201,8 +206,25 @@ export default function App() {
       customBackgroundName: undefined,
       customBackgroundMimeType: undefined,
       customBackgroundType: undefined,
+      customBackgroundDuration: undefined,
     }), { customBackground: null });
     notify(t('notice.customBgCleared'));
+  };
+  const handleTrimVideo = async (seconds: number) => {
+    if (!trimTarget) return;
+    const target = trimTarget;
+    setTrimTarget(null);
+    setBusy(t('trim.processing'));
+    try {
+      const { trimVideo } = await import('./background/trimVideo');
+      const trimmedBlob = await trimVideo(target, seconds);
+      applyCustomBackground(trimmedBlob, `${target.name.replace(/\.[^.]+$/, '')}_${seconds}s.mp4`, seconds);
+      notify(t('trim.success', { seconds }));
+    } catch (err) {
+      notify(t('trim.failed', { error: err instanceof Error ? err.message : String(err) }));
+    } finally {
+      setBusy('');
+    }
   };
   const fileChanged = (input: HTMLInputElement) => { const files = Array.from(input.files ?? []); input.value = ''; void handleFiles(files); };
   return <div className="studio" onDragOver={e => { e.preventDefault(); if (!busy && !modal) setDragging(true); }} onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }} onDrop={e => { e.preventDefault(); setDragging(false); if (!busy && !modal) void handleFiles(Array.from(e.dataTransfer.files)); }}>
@@ -214,7 +236,23 @@ export default function App() {
       <main className="center-panel"><Stage change={change} project={project} peaks={peaks} audioAnalysis={audioAnalysis} clock={clock} fontBlob={fontBlob} coverBlob={coverBlob} monetPortraitBlob={monetPortraitBlob} customBackgroundBlob={customBackgroundBlob} onError={notify}/><Timeline project={project} peaks={peaks} clock={clock} selected={selected} select={select}/></main><Inspector project={project} change={change} importFont={() => fontInput.current?.click()} installFont={applyLocalFont} importTemperaImages={() => temperaInput.current?.click()} removeTemperaImage={removeTemperaImage} coverBlob={coverBlob} monetPortraitBlob={monetPortraitBlob} importMonetPortrait={() => monetInput.current?.click()} clearMonetPortrait={clearMonetPortrait} customBackgroundBlob={customBackgroundBlob} importCustomBackground={() => customBgInput.current?.click()} clearCustomBackground={clearCustomBackground}/></div>
     <footer className="statusbar"><span><span className="status-dot"/>{t('editor.localStatus')}</span><span><kbd>Space</kbd> {t('editor.playHint')}</span><span>UseSuno MV Studio <span className="dim">/</span> {studioVersion}</span></footer>
     <input hidden ref={audioInput} aria-label={t('aria.audioFile')} type="file" accept="audio/*,.flac,.m4a" onChange={e => fileChanged(e.target)}/><input hidden ref={lyricsInput} aria-label={t('aria.lyricsFile')} type="file" accept=".lrc,.txt" onChange={e => fileChanged(e.target)}/><input hidden ref={projectInput} aria-label={t('aria.projectFile')} type="file" accept=".lyricmv,.json" onChange={e => fileChanged(e.target)}/><input hidden ref={fontInput} aria-label={t('aria.localFontFile')} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; const family = file.name.replace(/\.[^.]+$/, '').trim() || t('font.localFont'); void applyLocalFont(file, family).catch(error => notify(error instanceof Error ? error.message : t('notice.fontReadFailed'))); }}/><input hidden multiple ref={temperaInput} aria-label={t('aria.temperaPool')} type="file" accept="image/*,.svg" onChange={e => { const files = Array.from(e.target.files ?? []); e.target.value = ''; void addTemperaImages(files).catch(error => notify(error instanceof Error ? error.message : t('notice.temperaAddFailed'))); }}/><input hidden ref={monetInput} aria-label={t('aria.monetPortrait')} type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { try { applyMonetPortrait(file); } catch (error) { notify(error instanceof Error ? error.message : t('notice.imageReadFailed')); } } }}/>
-    <input hidden ref={customBgInput} aria-label={t('background.custom.name')} type="file" accept="image/*,video/*,.gif,.mp4,.webm,.mov" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { try { applyCustomBackground(file); } catch (error) { notify(error instanceof Error ? error.message : t('notice.imageReadFailed')); } } }}/>
+    <input hidden ref={customBgInput} aria-label={t('background.custom.name')} type="file" accept="image/*,video/*,.gif,.mp4,.webm,.mov" onChange={e => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (file) {
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+        if (isVideo && file.size > 200 * 1024 * 1024) {
+          setTrimTarget(file);
+          return;
+        }
+        try {
+          applyCustomBackground(file);
+        } catch (error) {
+          notify(error instanceof Error ? error.message : t('notice.imageReadFailed'));
+        }
+      }
+    }}/>
+    {trimTarget && <Modal title={t('trim.title')} close={() => setTrimTarget(null)}><p className="modal-description">{t('trim.body', { size: Math.round(trimTarget.size / 1024 / 1024) })}</p><div className="modal-actions" style={{ flexDirection: 'column', gap: 8, alignItems: 'stretch' }}><button className="primary" onClick={() => void handleTrimVideo(15)}>{t('trim.trim15')}</button><button style={{ border: '1px solid var(--line)', padding: '10px 14px' }} onClick={() => void handleTrimVideo(30)}>{t('trim.trim30')}</button><button style={{ border: '1px dashed var(--line)', padding: '8px 12px', fontSize: 11, color: 'var(--muted)' }} onClick={() => { const file = trimTarget; setTrimTarget(null); applyCustomBackground(file, file.name, 0); }}>{t('inspector.customBgLoopFullShort')} · {t('export.realtimeLabel')}</button><button onClick={() => setTrimTarget(null)}>{t('export.cancel')}</button></div></Modal>}
     {toast && <div className="toast" role="status"><span>{toast}</span><button className="icon-button" data-tooltip={t('toast.close')} aria-label={t('toast.close')} onClick={() => setToast('')}><X size={15}/></button></div>}
     {busy && <div className="busy-overlay" role="status"><Loader2 className="spin" size={24}/><p>{busy}</p></div>}
     {dragging && <div className="drop-overlay"><Upload size={32}/><strong>{t('drop.title')}</strong><span>{t('drop.body')}</span></div>}

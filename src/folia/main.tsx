@@ -97,9 +97,27 @@ function FoliaHost() {
               parent.postMessage({ type: 'verse:capture-result', requestId, bitmap: value.bitmap, workerFrame: value.frame, captureBackend: value.backend }, location.origin, value.bitmap ? [value.bitmap] : layerBitmaps(value.frame!.layers));
               return;
             }
-            if (data.type === 'verse:export-begin') { releaseJobs(); releaseDeferredPaperDraws(); layeredSession = data.captureMethod === 'layered'; textCache = data.textCache === true; setLayeredPresentation(layeredSession); if (layeredSession) layeredCapture ??= await import('./layeredCapture'); layeredCapture?.releaseLayeredCapture(); directSession = ['direct', 'worker'].includes(data.captureMethod) && !!refs.current.project && canExportDirect(refs.current.project); if (data.captureMethod === 'worker' && directSession) fumeWorkerCapture ??= await import('./workerCapture'); workerSession = data.captureMethod === 'worker' && directSession; fumeWorkerCapture?.setFumeExternalPainting(workerSession); releaseDirectCapture(); releaseNativeCapture(); frameClock.begin(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); window.dispatchEvent(new Event('verse:export-begin')); }
-            if (data.type === 'verse:export-end') { releaseJobs(); releaseDeferredPaperDraws();
-              directSession = false; workerSession = false; layeredSession = false; setLayeredPresentation(false); layeredCapture?.releaseLayeredCapture(); fumeWorkerCapture?.setFumeExternalPainting(false); releaseDirectCapture(); releaseNativeCapture(); frameClock.end(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps(); window.dispatchEvent(new Event('verse:export-end'));
+            if (data.type === 'verse:export-begin') {
+              releaseJobs(); releaseDeferredPaperDraws();
+              if (data.transparent) document.body.classList.add('folia-transparent-export');
+              layeredSession = data.captureMethod === 'layered'; textCache = data.textCache === true;
+              setLayeredPresentation(layeredSession);
+              if (layeredSession) layeredCapture ??= await import('./layeredCapture');
+              layeredCapture?.releaseLayeredCapture();
+              directSession = ['direct', 'worker'].includes(data.captureMethod) && !!refs.current.project && canExportDirect(refs.current.project);
+              if (data.captureMethod === 'worker' && directSession) fumeWorkerCapture ??= await import('./workerCapture');
+              workerSession = data.captureMethod === 'worker' && directSession;
+              fumeWorkerCapture?.setFumeExternalPainting(workerSession);
+              releaseDirectCapture(); releaseNativeCapture(); frameClock.begin(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps();
+              window.dispatchEvent(new Event('verse:export-begin'));
+            }
+            if (data.type === 'verse:export-end') {
+              releaseJobs(); releaseDeferredPaperDraws();
+              document.body.classList.remove('folia-transparent-export');
+              directSession = false; workerSession = false; layeredSession = false; setLayeredPresentation(false);
+              layeredCapture?.releaseLayeredCapture(); fumeWorkerCapture?.setFumeExternalPainting(false);
+              releaseDirectCapture(); releaseNativeCapture(); frameClock.end(); releaseDomCapture(); releaseCanvasFrames(); releaseCanvasBitmaps();
+              window.dispatchEvent(new Event('verse:export-end'));
               // The original renderer resumes with its native clock after the export session.
               flushSync(() => setEpoch(value => value + 1));
             }
@@ -170,7 +188,8 @@ function FoliaHost() {
               const native = data.captureMethod === 'native' ? await captureNative(root, innerWidth, innerHeight) : null;
               const direct = data.captureMethod === 'direct' && directSession;
               if (!direct && !native) domCapture ??= await import('./domCapture');
-              const composite = direct ? captureDirect(root, innerWidth, innerHeight, foliaTheme(refs.current.project!).backgroundColor) : native ?? await domCapture!.captureDom(root, innerWidth, innerHeight);
+              const isTransparent = document.body.classList.contains('folia-transparent-export');
+              const composite = direct ? captureDirect(root, innerWidth, innerHeight, isTransparent ? 'transparent' : foliaTheme(refs.current.project!).backgroundColor) : native ?? await domCapture!.captureDom(root, innerWidth, innerHeight);
               const bitmap = await createImageBitmap(composite);
               if (data.prepareLayered) {
                 const jobId = queueJob(Promise.resolve({ bitmap, backend: 'standard' }));
@@ -219,7 +238,7 @@ function FoliaHost() {
     temperaTuning={temperaTuning}
     lumiereTuning={lumiereTuning}
     onLyricLineSeek={lyricTime => parent.postMessage({ type: 'verse:seek', time: lyricTime + project.offset }, location.origin)}/>;
-  return <Boundary errorLabel={t('folia.loadFailed')} key={project.template}><Suspense fallback={<div className="folia-loading">{t('folia.loading')}</div>}><div className="relative h-full w-full overflow-hidden">{project.background === 'custom' ? <div data-capture-background style={{ display: 'contents' }}><CustomMediaBackground url={artwork.customBackgroundUrl} mimeType={project.customBackgroundMimeType} mediaType={project.customBackgroundType} currentTime={time} paused={paused} theme={theme} isDaylight={project.palette === 'paper'} blur={project.customBackgroundBlur} dim={project.customBackgroundDim}/></div> : null}{project.background === 'light-tide' ? <div data-capture-background style={{ display: 'contents' }}><LightTideBackground currentTime={time} theme={theme} audioBands={audioBands} isDaylight={project.palette === 'paper'}/></div> : null}{customAurora ? <div data-capture-background style={{ display: 'contents' }}><StudioAuroraBackground mode={project.background === 'aurora-curtain' ? 'aurora-curtain' : 'aurora-nebula'} currentTime={time} audioBands={audioBands} theme={theme} isDaylight={project.palette === 'paper'}/></div> : null}<div data-capture-renderer className="absolute inset-0">{renderer}</div><SongIntro project={project} time={time} coverUrl={artwork.coverUrl}/></div></Suspense></Boundary>;
+  return <Boundary errorLabel={t('folia.loadFailed')} key={project.template}><Suspense fallback={<div className="folia-loading">{t('folia.loading')}</div>}><div className="relative h-full w-full overflow-hidden">{project.background === 'custom' ? <div data-capture-background style={{ display: 'contents' }}><CustomMediaBackground url={artwork.customBackgroundUrl} mimeType={project.customBackgroundMimeType} mediaType={project.customBackgroundType} currentTime={time} paused={paused} theme={theme} isDaylight={project.palette === 'paper'} blur={project.customBackgroundBlur} dim={project.customBackgroundDim} durationLimit={project.customBackgroundDuration}/></div> : null}{project.background === 'light-tide' ? <div data-capture-background style={{ display: 'contents' }}><LightTideBackground currentTime={time} theme={theme} audioBands={audioBands} isDaylight={project.palette === 'paper'}/></div> : null}{customAurora ? <div data-capture-background style={{ display: 'contents' }}><StudioAuroraBackground mode={project.background === 'aurora-curtain' ? 'aurora-curtain' : 'aurora-nebula'} currentTime={time} audioBands={audioBands} theme={theme} isDaylight={project.palette === 'paper'}/></div> : null}<div data-capture-renderer className="absolute inset-0">{renderer}</div><SongIntro project={project} time={time} coverUrl={artwork.coverUrl}/></div></Suspense></Boundary>;
 }
 const root = createRoot(document.getElementById('folia-root')!);
 root.render(<FoliaHost/>);

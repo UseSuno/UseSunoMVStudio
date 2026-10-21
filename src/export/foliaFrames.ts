@@ -54,7 +54,12 @@ export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, a
   const context = canvas.getContext('2d')!;
   const target = new BufferTarget();
   const output = new Output({ format: options.format === 'mp4' ? new Mp4OutputFormat() : new WebMOutputFormat(), target });
-  const video = new CanvasSource(canvas, { codec: options.format === 'mp4' ? 'avc' : 'vp9', bitrate: options.height >= 1080 ? 10_000_000 : 5_000_000, keyFrameInterval: 2 });
+  const video = new CanvasSource(canvas, {
+    codec: options.format === 'mp4' ? 'avc' : 'vp9',
+    alpha: options.transparent ? 'keep' : 'discard',
+    bitrate: options.height >= 1080 ? 10_000_000 : 5_000_000,
+    keyFrameInterval: 2,
+  });
   const audio = new AudioBufferSource({ codec: options.format === 'mp4' ? 'aac' : 'opus', bitrate: 192_000 });
   output.addVideoTrack(video, { frameRate: options.fps }); output.addAudioTrack(audio);
   const oldTime = clock.time, oldStyle = { width: iframe.style.width, height: iframe.style.height };
@@ -81,7 +86,7 @@ export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, a
     stageTouched = true;
     iframe.style.width = `${width}px`; iframe.style.height = `${height}px`;
     await nextExportPaint(signal); await nextExportPaint(signal);
-    session = true; await frameCommand(iframe.contentWindow, 'verse:export-begin', { captureMethod: options.captureMethod, textCache: options.textCache }, signal);
+    session = true; await frameCommand(iframe.contentWindow, 'verse:export-begin', { captureMethod: options.captureMethod, textCache: options.textCache, transparent: options.transparent }, signal);
     if (options.captureMethod === 'layered') { iframe.style.opacity = '0'; previewHidden = true; }
     // Run the original entrance/spring algorithms through a short, fixed pre-roll.
     const preRoll = Math.min(2, options.start), warmFrames = Math.ceil(preRoll * 60);
@@ -90,7 +95,7 @@ export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, a
 
     if (options.captureMethod === 'worker' || options.captureMethod === 'layered') {
       worker = new FumeExportWorker(signal);
-      await worker.request('init', { width, height, fps: options.fps, format: options.format, fonts: options.captureMethod === 'worker' ? workerFonts(iframe.contentDocument!) : [] });
+      await worker.request('init', { width, height, fps: options.fps, format: options.format, transparent: options.transparent, fonts: options.captureMethod === 'worker' ? workerFonts(iframe.contentDocument!) : [] });
     } else await output.start();
     const duration = options.end - options.start, totalFrames = Math.ceil(duration * options.fps);
     meter = frameProgress(totalFrames); diagnostics.beginFrames();
@@ -139,7 +144,12 @@ export async function exportFoliaFrames(project: Project, buffer: AudioBuffer, a
           onBackend?.('worker'); diagnostics.frame(frame, 'worker'); submit(packet, relative);
         }
       } else {
-        context.fillStyle = foliaTheme(project).backgroundColor; context.fillRect(0, 0, width, height);
+        if (!options.transparent) {
+          context.fillStyle = foliaTheme(project).backgroundColor;
+          context.fillRect(0, 0, width, height);
+        } else {
+          context.clearRect(0, 0, width, height);
+        }
         let backend = options.captureMethod ?? 'standard';
         const bitmap = await captureFrame(iframe.contentWindow, signal, options.captureMethod, value => { backend = value as typeof backend; onBackend?.(value); });
         try { context.drawImage(bitmap, 0, 0, width, height); } finally { bitmap.close(); }

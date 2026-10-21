@@ -4,6 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, expect, it } from 'vitest';
+import packageJson from '../package.json';
+import { studioVersion } from '../src/domain/about';
 import { collectSourceFiles, createComplianceArtifacts, isSourcePath } from '../scripts/compliance';
 
 const temporary: string[] = [];
@@ -13,7 +15,7 @@ async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'verse-compliance-test-'));
   temporary.push(root);
   const put = async (name: string, text = name) => { await mkdir(path.dirname(path.join(root, name)), { recursive: true }); await writeFile(path.join(root, name), text); };
-  for (const name of ['tsconfig.json', 'vite.config.ts', 'index.html', 'folia.html', 'timestamp.html', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', '.gitattributes', '.env.example', 'src/App.tsx', 'tests/example.test.ts', 'scripts/compliance.ts', 'public/privacy.html', 'public/licenses.html']) await put(name);
+  for (const name of ['tsconfig.json', 'vite.config.ts', 'index.html', 'folia.html', 'timestamp.html', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', '.gitattributes', '.env.example', 'src/App.tsx', 'tests/example.test.ts', 'scripts/compliance.ts', 'public/privacy.html', 'public/licenses.html', 'public/robots.txt', 'public/sitemap.xml', 'public/llms.txt', 'public/llms-full.txt']) await put(name);
   await put('package.json', '{"name":"example"}');
   await put('package-lock.json', '{"packages":{}}');
   const assets = ['components/visualizer/cappella/avatar/README.md', 'components/visualizer/cappella/emo/README.md', 'components/visualizer/cappella/avatar/example.png'];
@@ -53,4 +55,8 @@ it('includes matching source hashes and legal artifacts in the downloadable ZIP'
   expect(files['public/legal/LICENSE.txt']).toEqual(artifacts['legal/LICENSE.txt']);
   expect(files['public/legal/dependency-notices.txt']).toEqual(artifacts['legal/dependency-notices.txt']);
   expect(Object.keys(files).some(name => name.startsWith('node_modules/'))).toBe(false);
+});
+
+it('synchronizes the displayed studioVersion with package.json', () => {
+  expect(studioVersion).toBe(packageJson.version);
 });

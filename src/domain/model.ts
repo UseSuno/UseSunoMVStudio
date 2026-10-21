@@ -18,7 +18,7 @@ export interface Project {
   monetPortraitStyle: 'square' | 'rectangular'; monetPortraitOffsetX: number;
   monetAudioVisualization: boolean; monetAudioStyle: 'bar' | 'line';
   customBackgroundName?: string; customBackgroundMimeType?: string; customBackgroundType?: 'image' | 'video' | 'gif';
-  customBackgroundBlur?: number; customBackgroundDim?: number;
+  customBackgroundBlur?: number; customBackgroundDim?: number; customBackgroundDuration?: number;
   lines: LyricLine[]; source: string; audioName: string; seed: number;
 }
 export const templates: { id: TemplateId; name: string; english: string; description: string; number: string }[] = [

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MotionValue } from 'framer-motion';
 import type { Theme } from '../vendor/folia/types';
 import { frameClock } from '../folia/exportClock';
@@ -13,6 +14,7 @@ export interface CustomMediaBackgroundProps {
   isDaylight: boolean;
   blur?: number;
   dim?: number;
+  durationLimit?: number;
 }
 
 const hasCanvasFilter = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
@@ -27,7 +29,9 @@ export function CustomMediaBackground({
   isDaylight,
   blur = 0,
   dim = 0.25,
+  durationLimit,
 }: CustomMediaBackgroundProps) {
+  const { t } = useTranslation();
   const isVideo = mediaType === 'video' || (mimeType || '').startsWith('video/');
   const videoRef = useRef<HTMLVideoElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -102,6 +106,10 @@ export function CustomMediaBackground({
     const onExportEnd = () => {
       setIsExportingSession(false);
       setIsReady(true);
+      if (canvasRef.current) {
+        canvasRef.current.width = 0;
+        canvasRef.current.height = 0;
+      }
       if (isVideo && videoRef.current && !paused) {
         void videoRef.current.play().catch(() => {});
       }
@@ -122,16 +130,38 @@ export function CustomMediaBackground({
     };
   }, [isVideo, paused, drawCurrentFrame]);
 
+  // Clean up video media and canvas backing store on unmount / URL change
+  useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+      if (canvasRef.current) {
+        canvasRef.current.width = 0;
+        canvasRef.current.height = 0;
+      }
+    };
+  }, [url]);
+
   // 3. Play / Pause synchronization for interactive preview
   useEffect(() => {
     if (!isVideo || !url || isExporting) return;
     const video = videoRef.current;
     if (!video) return;
 
+    const getTargetTime = (t: number, duration: number) => {
+      const limit = (durationLimit && durationLimit > 0) ? Math.min(duration, durationLimit) : duration;
+      if (!limit || !Number.isFinite(limit) || limit <= 0) return Math.max(0, t);
+      return Math.max(0, t) % limit;
+    };
+
     if (!paused) {
       const t = currentTime.get();
       if (video.duration && Number.isFinite(video.duration) && video.duration > 0) {
-        const target = Math.max(0, t) % video.duration;
+        const target = getTargetTime(t, video.duration);
         if (Math.abs(video.currentTime - target) > 0.5) {
           video.currentTime = target;
         }
@@ -140,12 +170,18 @@ export function CustomMediaBackground({
     } else {
       video.pause();
     }
-  }, [paused, isVideo, url, isExporting, currentTime]);
+  }, [paused, isVideo, url, isExporting, currentTime, durationLimit]);
 
   // 4. Timeline seek synchronization (both export step and interactive preview)
   useEffect(() => {
     if (!url) return;
     const video = videoRef.current;
+
+    const getTargetTime = (t: number, duration: number) => {
+      const limit = (durationLimit && durationLimit > 0) ? Math.min(duration, durationLimit) : duration;
+      if (!limit || !Number.isFinite(limit) || limit <= 0) return Math.max(0, t);
+      return Math.max(0, t) % limit;
+    };
 
     const unsub = currentTime.on('change', t => {
       if (isExporting) {
@@ -153,7 +189,7 @@ export function CustomMediaBackground({
         if (isVideo && video) {
           video.pause();
           if (video.duration && Number.isFinite(video.duration) && video.duration > 0) {
-            const target = Math.max(0, t) % video.duration;
+            const target = getTargetTime(t, video.duration);
             if (Math.abs(video.currentTime - target) > 0.005) {
               setIsReady(false);
               video.currentTime = target;
@@ -172,7 +208,7 @@ export function CustomMediaBackground({
       } else if (isVideo && video) {
         // Interactive preview mode:
         if (!video.duration || !Number.isFinite(video.duration) || video.duration <= 0) return;
-        const target = Math.max(0, t) % video.duration;
+        const target = getTargetTime(t, video.duration);
 
         if (paused) {
           video.currentTime = target;
@@ -183,7 +219,7 @@ export function CustomMediaBackground({
     });
 
     return () => unsub();
-  }, [url, isVideo, paused, isExporting, currentTime, drawCurrentFrame]);
+  }, [url, isVideo, paused, isExporting, currentTime, drawCurrentFrame, durationLimit]);
 
   // 5. Video seeked and ready listeners
   useEffect(() => {
@@ -243,7 +279,7 @@ export function CustomMediaBackground({
           className="text-xs opacity-40 px-6 py-3 rounded-md border border-current text-center max-w-sm"
           style={{ color: theme.primaryColor }}
         >
-          {isDaylight ? '未选择背景画面，请在右侧检查器上传图片、GIF 或视频' : 'No background media selected. Upload an image, GIF, or video in the Inspector.'}
+          {t('inspector.noMediaPrompt')}
         </div>
       </div>
     );
@@ -282,6 +318,11 @@ export function CustomMediaBackground({
             loop
             autoPlay
             preload="auto"
+            onTimeUpdate={e => {
+              if (durationLimit && durationLimit > 0 && e.currentTarget.currentTime >= durationLimit) {
+                e.currentTarget.currentTime = 0;
+              }
+            }}
             className="absolute inset-0 h-full w-full object-cover"
             style={{
               filter: filterStyle,

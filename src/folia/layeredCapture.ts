@@ -30,7 +30,10 @@ export async function prepareLayeredPacket(root: HTMLElement, width: number, hei
   const sources = new Map<HTMLCanvasElement, Promise<ImageBitmap>>();
   for (const layer of originals) if (layer.source instanceof HTMLCanvasElement) sources.set(layer.source, canvasBitmap(layer.source));
   const prepared: Awaited<ReturnType<CssSnapshot['prepare']>>[] = [];
-  const layers: Promise<LayeredFrame['layers'][number]>[] = [Promise.resolve({ x: 0, y: 0, width, height, opacity: 1, blend: 'source-over', filter: 'none', color: getComputedStyle(root).backgroundColor })];
+  const isTransparent = root.ownerDocument.body.classList.contains('folia-transparent-export');
+  const layers: Promise<LayeredFrame['layers'][number]>[] = isTransparent
+    ? []
+    : [Promise.resolve({ x: 0, y: 0, width, height, opacity: 1, blend: 'source-over', filter: 'none', color: getComputedStyle(root).backgroundColor })];
   const dom = async (include: (node: Element) => boolean, key: string) => {
     const frame = await snapshot!.prepare(width, height, include, key); prepared.push(frame);
     const layer = frame.image.then(async canvas => {

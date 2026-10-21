@@ -5,6 +5,8 @@ import './messages';
 import { applyPreferences, loadPreferences } from '../domain/preferences';
 import '../styles.css';
 import './timestamp.css';
+import { initAnalytics } from '../analytics';
 
+initAnalytics();
 applyPreferences(loadPreferences());
 createRoot(document.getElementById('timestamp-root')!).render(<TimestampApp/>);

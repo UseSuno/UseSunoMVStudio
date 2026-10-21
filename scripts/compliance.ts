@@ -5,7 +5,7 @@ import { strToU8, zipSync, type Zippable } from 'fflate';
 import type { Plugin } from 'vite';
 
 const rootFiles = new Set(['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'index.html', 'folia.html', 'timestamp.html', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', '.gitattributes', '.env.example']);
-const publicFiles = new Set(['public/favicon.svg', 'public/privacy.html', 'public/licenses.html']);
+const publicFiles = new Set(['public/favicon.svg', 'public/privacy.html', 'public/licenses.html', 'public/robots.txt', 'public/sitemap.xml', 'public/llms.txt', 'public/llms-full.txt']);
 const scriptFiles = new Set(['scripts/compliance.ts', 'scripts/vendor-folia.py', 'scripts/probe-video.mjs', 'scripts/folia-patches/series.json', 'scripts/folia-patches/README.md']);
 const blockedPart = /^(?:\.|node_modules$|dist$|uploads?$|user[-_]?(?:data|media)$|secrets?$|credentials?$|tmp$|qa(?:[-_.]|$))/i;
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');

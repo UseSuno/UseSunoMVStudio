@@ -1,0 +1,143 @@
+# UseSuno MV Studio — Comprehensive Technical & User Documentation
+
+> UseSuno MV Studio is an open-source, local-first web application designed for creators to generate high-fidelity animated lyric videos and music visualizers from Suno AI music or any local audio file.
+
+- Website: https://usesuno.com/
+- Timing Editor: https://usesuno.com/timestamp.html
+- Repository: https://github.com/UseSuno/UseSunoMVStudio
+- License: AGPL-3.0-only
+- Version: 0.3.0
+
+---
+
+## 1. Architectural Principles
+
+1. **100% Local-First Processing**:
+   - Audio decoding, spectrum analysis, WebGL/Three.js rendering, canvas composition, and video encoding occur entirely within the user's browser client.
+   - User assets (songs, lyrics, cover art, custom background videos) are never uploaded to any remote server.
+2. **Browser Hardware Acceleration**:
+   - Frame-by-frame export uses WebCodecs API (`VideoEncoder`, `AudioEncoder`) for non-real-time frame rendering, guaranteeing 0 frame drops even on complex visual effects.
+   - Real-time recording uses MediaRecorder API with audio-canvas synchronization.
+3. **Data Portability**:
+   - Projects can be saved and restored via `.lyricmv` project files (ZIP archive containing project metadata, audio blob, custom background, and offline font assets).
+   - Lyrics can be exported standalone as synchronized `.lrc` files.
+
+---
+
+## 2. Visualizer Templates (20 Styles)
+
+1. **Fume (云烟)**: Atmospheric particle smoke simulation with floating dynamic typography.
+2. **Classic (经典)**: Clean typography and smooth scrolling focus inspired by modern music streaming players.
+3. **Cadenza (华彩)**: Energetic kinetic typography with vibrant audio-reactive color pulsations.
+4. **Partita (组曲)**: Multi-layered rhythm bars and synchronized lyric cards.
+5. **Tilt (移轴)**: 3D perspective typography with optical depth-of-field and subtle tilt-shift blur.
+6. **Claddagh (爱尔兰之环)**: Celtic and neoclassical motifs with decorative borders and graceful transitions.
+7. **Monet (莫奈)**: Impressionistic watercolor and oil painting texture simulation reacting to audio frequency bands.
+8. **Cappella (阿卡贝拉)**: Expressive avatar visualizer with AI-assisted character expressions synced to vocal rhythms.
+9. **Diorama (微缩景观)**: 3D geometric isometric stage with depth layers and camera orbiting.
+10. **Aurora Traverse (极光越野)**: Luminous atmospheric auroras undulating with audio low-mid frequencies.
+11. **Pendolo (钟摆)**: Harmonic motion visualizer featuring pendulum physics and rhythmic typography.
+12. **Tempera (坦培拉)**: Classic egg-tempera fine art rendering with hatching textures and rich pigments.
+13. **Sonnet (十四行诗)**: Editorial magazine aesthetic with serif typography, retro borders, and elegant layout.
+14. **Still (静止)**: Minimalist typography visualizer for ambient music, focus tracks, or podcast snippets.
+15. **Astral (星轨)**: Orbiting celestial rings, cosmic dust, and starry typography.
+16. **Kyoto (京调)**: Traditional Asian calligraphy aesthetics with ink-bleed effects, seal stamps, and vertical/horizontal text flow.
+17. **Chroma (丹青)**: Dynamic Chinese ink-wash painting simulation with stroke-by-stroke character appearance.
+18. **Elysium (灵境)**: Luminous spiritual aesthetic with golden particle fields and glowing serif typography.
+19. **Syzygy (朔望)**: Celestial lunar-solar alignment theme with warm paper and obsidian dark mode adaptations.
+20. **Lumiere (绘光)**: Line-art vector illustration with glowing audio-reactive neon light paths.
+
+---
+
+## 3. Background System
+
+- **Generative Backgrounds**:
+  - Theme space: Dynamic background colored according to the template's color palette.
+  - Fluid light: Organic flowing shader waves responding to song dynamics.
+  - Aurora nebula: Multi-color cosmic nebula gas simulation.
+  - Aurora curtain: Vertical dancing ribbons of polar light.
+  - Light tide: Ocean waves of luminance and particle spray.
+  - Space starlight: Infinite starfield travel effect.
+- **Custom Media Backgrounds**:
+  - Image: Supports PNG, JPG, WebP.
+  - Animated GIF: Native animated GIF playback.
+  - Video: Supports MP4, WebM. Built-in clip trimmer allows selecting the exact time range of a video clip to loop or match song duration.
+
+---
+
+## 4. Transparent Lyric Layer Export
+
+UseSuno MV Studio supports exporting **Only Transparent Lyric Layer**:
+- **Format**: WebM with VP9 codec, 32-bit RGBA color format (preserving alpha transparency).
+- **Audio**: Synchronized full-fidelity stereo audio track is included inside the WebM container.
+- **Use Case**: Post-production video editing in Adobe Premiere Pro, Apple Final Cut Pro, DaVinci Resolve, or CapCut. Creators can layer the animated lyrics and music over arbitrary video B-roll, gameplay footage, or 3D animations with native transparency.
+
+---
+
+## 5. Lyrics & Timing System
+
+- **Import Formats**: Synchronized `.lrc` files, `.ttml` files, plain text `.txt`, or embedded lyrics from audio files (ID3v2, FLAC Vorbis comments, MP4 metadata).
+- **Dedicated Timing Workspace (`/timestamp.html`)**:
+  - Word-by-word tapping synchronization with keyboard spacebar or click.
+  - Line-level timestamp adjustment.
+  - Global time offset (advance or delay lyrics by N seconds).
+  - Split, merge, delete, and insert lyric lines.
+  - Autosaved draft recovery via localStorage to prevent work loss.
+
+---
+
+## 6. Video Export Specifications
+
+- **Aspect Ratios**:
+  - 16:9 (Landscape - 1280x720, 1920x1080) for YouTube, Bilibili, desktop displays.
+  - 9:16 (Vertical - 720x1280, 1080x1920) for TikTok, YouTube Shorts, Instagram Reels.
+  - 1:1 (Square - 720x720, 1080x1080) for Instagram Feed, social post cards.
+- **Frame Rates**: 30 fps or 60 fps.
+- **Export Modes**:
+  1. *Frame-by-frame (WebCodecs)*: Frame-accurate offline render; handles heavy 3D shaders smoothly without frame skipping.
+  2. *Real-time recording (MediaRecorder)*: Faster on supported hardware when immediate recording is preferred.
+- **Time Range**: Full song or custom time range (start/end in seconds).
+
+---
+
+## 7. Supported Audio Formats
+
+- MP3 (`.mp3`)
+- WAV (`.wav`)
+- FLAC (`.flac`)
+- OGG (`.ogg`)
+- AAC / M4A (`.m4a`, `.aac`)
+- WebM Audio (`.weba`, `.webm`)
+
+---
+
+## 8. Internationalization
+
+Available in 11 languages with complete native localization and RTL (Right-to-Left) support:
+- English (`en`)
+- 简体中文 (`zh-CN`)
+- 繁體中文 (`zh-TW`)
+- Bahasa Indonesia (`id`)
+- हिन्दी (`hi`)
+- Português do Brasil (`pt-BR`)
+- Filipino (`fil`)
+- Deutsch (`de`)
+- اردو (`ur` - with native RTL layout)
+- Русский (`ru`)
+- Tiếng Việt (`vi`)
+
+---
+
+## 9. Frequently Asked Questions (FAQ)
+
+**Q: Do I need an account or subscription to use UseSuno MV Studio?**
+A: No. It is 100% free, open-source under AGPL-3.0, and requires no registration or login.
+
+**Q: Are my songs and lyrics uploaded to a server?**
+A: Never. All files remain in browser memory and IndexedDB.
+
+**Q: How do I export transparent lyrics for CapCut / Premiere?**
+A: Click "Export video", select the "Only Transparent Lyric Layer" option, and choose WebM format. The resulting video will have transparent background and synchronized audio.
+
+**Q: Can I use this for non-Suno songs?**
+A: Yes! Any audio file (MP3, WAV, FLAC, etc.) and any lyrics text or LRC file can be imported and edited.

@@ -1,5 +1,6 @@
 import { clamp, ease, palettes } from '../domain/model';
 import type { RenderPlan, LayoutLine } from './compile';
+import i18n from '../i18n';
 // Every visible transform is a function of project time, never accumulated frame delta.
 function lineProgress(entry: LayoutLine, time: number, estimated: boolean) {
   const { line } = entry;
@@ -95,13 +96,18 @@ function drawTilt(ctx: CanvasRenderingContext2D, plan: RenderPlan, time: number)
     ctx.restore();
   }
 }
-export function drawFrame(ctx: CanvasRenderingContext2D, plan: RenderPlan, time: number) {
+export function drawFrame(ctx: CanvasRenderingContext2D, plan: RenderPlan, time: number, transparent = false) {
   const { width: w, height: h, project: p } = plan; const palette = palettes[p.palette];
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = palette.bg; ctx.fillRect(0, 0, w, h);
   const scale = Math.min(w, h) / 720;
-  // Quiet, fixed-seed print grain; the layout never depends on random frame state.
-  ctx.fillStyle = palette.ink; ctx.globalAlpha = 0.025;
-  for (let i = 0; i < 650; i++) { const x = ((i * 317 + p.seed * 37) % 1291) / 1291 * w, y = ((i * 193 + p.seed * 13) % 733) / 733 * h; ctx.fillRect(x, y, scale, scale); }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (!transparent) {
+    ctx.globalAlpha = 1; ctx.fillStyle = palette.bg; ctx.fillRect(0, 0, w, h);
+    // Quiet, fixed-seed print grain; the layout never depends on random frame state.
+    ctx.fillStyle = palette.ink; ctx.globalAlpha = 0.025;
+    for (let i = 0; i < 650; i++) { const x = ((i * 317 + p.seed * 37) % 1291) / 1291 * w, y = ((i * 193 + p.seed * 13) % 733) / 733 * h; ctx.fillRect(x, y, scale, scale); }
+  } else {
+    ctx.clearRect(0, 0, w, h);
+  }
   const t = time - p.offset;
   const first = plan.entries[0]?.line.start ?? 0;
   const last = Math.max(0, ...plan.entries.map(e => e.line.end ?? 0));
@@ -110,8 +116,8 @@ export function drawFrame(ctx: CanvasRenderingContext2D, plan: RenderPlan, time:
   ctx.save(); ctx.beginPath(); ctx.rect(0, h * 0.12, w, h * 0.72); ctx.clip();
   if (intro || outro || !plan.entries.length) {
     ctx.globalAlpha = 1; ctx.fillStyle = palette.ink; ctx.textAlign = 'center'; ctx.font = `500 ${50 * scale * p.fontScale}px ${plan.family}`;
-    const max = w * 0.8; ctx.fillText(p.title || '未命名作品', w / 2, h * 0.47, max);
-    ctx.font = `${16 * scale}px Arial`; ctx.globalAlpha = 0.6; ctx.fillText(outro ? '—  谢谢聆听  —' : p.artist, w / 2, h * 0.57, max); ctx.textAlign = 'left';
+    const max = w * 0.8; ctx.fillText(p.title || i18n.t('export.untitledWork'), w / 2, h * 0.47, max);
+    ctx.font = `${16 * scale}px Arial`; ctx.globalAlpha = 0.6; ctx.fillText(outro ? i18n.t('export.thanksForListening') : p.artist, w / 2, h * 0.57, max); ctx.textAlign = 'left';
   } else if (p.template === 'article') drawArticle(ctx, plan, t);
   else if (p.template === 'flow') drawFlow(ctx, plan, t);
   else drawTilt(ctx, plan, t);

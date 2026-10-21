@@ -162,4 +162,24 @@ describe('Custom Background Canvas Paint Layers Composition', () => {
     // Third: visualizer canvas (rendered ON TOP OF custom background)
     expect(drawn[2]).toEqual(['canvas', visualizerCanvas, 1, [0, 0, 1280, 720]]);
   });
+
+  it('validates customBackgroundDuration in project serialization', async () => {
+    const { defaultProject } = await import('../src/domain/model');
+    const { validateProject } = await import('../src/persistence/project');
+    const valid = {
+      ...defaultProject([]),
+      background: 'custom' as const,
+      customBackgroundDuration: 15,
+    };
+    expect(() => validateProject(valid)).not.toThrow();
+
+    expect(() => validateProject({ ...valid, customBackgroundDuration: 0 })).not.toThrow();
+    expect(() => validateProject({ ...valid, customBackgroundDuration: 30 })).not.toThrow();
+    expect(() => validateProject({ ...valid, customBackgroundDuration: -5 })).toThrow();
+  });
+
+  it('exports trimVideo helper correctly', async () => {
+    const { trimVideo } = await import('../src/background/trimVideo');
+    expect(typeof trimVideo).toBe('function');
+  });
 });

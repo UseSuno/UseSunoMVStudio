@@ -148,6 +148,41 @@ export function Inspector({ project: p, change, importFont, installFont, importT
               onChange={e => change({ customBackgroundDim: Number(e.target.value) })}
             />
           </label>
+          {p.customBackgroundType === 'video' && (
+            <div className="custom-bg-loop-group" style={{ marginTop: 8 }}>
+              <div className="section-label" style={{ fontSize: 11, marginBottom: 4 }}>
+                {t('inspector.customBgLoopTitle')}
+              </div>
+              <div className="segmented">
+                <button
+                  type="button"
+                  className={p.customBackgroundDuration === 15 || p.customBackgroundDuration === undefined ? 'selected' : ''}
+                  onClick={() => change({ customBackgroundDuration: 15 })}
+                >
+                  {t('inspector.customBgLoop15Short')}
+                </button>
+                <button
+                  type="button"
+                  className={p.customBackgroundDuration === 30 ? 'selected' : ''}
+                  onClick={() => change({ customBackgroundDuration: 30 })}
+                >
+                  {t('inspector.customBgLoop30Short')}
+                </button>
+                <button
+                  type="button"
+                  className={p.customBackgroundDuration === 0 ? 'selected' : ''}
+                  onClick={() => change({ customBackgroundDuration: 0 })}
+                >
+                  {t('inspector.customBgLoopFullShort')}
+                </button>
+              </div>
+              <p className="field-note" style={{ marginTop: 4 }}>
+                {p.customBackgroundDuration === 0
+                  ? t('inspector.customBgLoopFullHint')
+                  : t('inspector.customBgLoopShortHint')}
+              </p>
+            </div>
+          )}
           <p className="field-note">{t('inspector.customBgFormats')}</p>
         </div>
       )}

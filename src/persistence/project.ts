@@ -44,6 +44,7 @@ export function validateProject(value: unknown): Project {
   if (p.customBackgroundType !== undefined && !['image','video','gif'].includes(p.customBackgroundType)) throw new Error('自定义背景分类无效。');
   if (p.customBackgroundBlur !== undefined && !finite(p.customBackgroundBlur, 0, 50)) throw new Error('自定义背景模糊度无效。');
   if (p.customBackgroundDim !== undefined && !finite(p.customBackgroundDim, 0, 1)) throw new Error('自定义背景遮罩浓度无效。');
+  if (p.customBackgroundDuration !== undefined && !finite(p.customBackgroundDuration, 0, 7200)) throw new Error('自定义背景循环时长无效。');
   if (p.coverMimeType !== undefined && typeof p.coverMimeType !== 'string') throw new Error('封面图片类型无效。');
   if (!Array.isArray(p.lines) || p.lines.length > 2000) throw new Error('歌词行数超出限制。');
   if (p.temperaLayerImages !== undefined && (!Array.isArray(p.temperaLayerImages) || p.temperaLayerImages.length > 16 || p.temperaLayerImages.some(image => !image || typeof image.id !== 'string' || typeof image.name !== 'string' || (image.mimeType !== undefined && typeof image.mimeType !== 'string') || !['left','center','right','free'].includes(image.align) || !['top','center','bottom','free'].includes(image.verticalAlign) || !finite(image.scale, .1, 2) || !finite(image.opacity, 0, 1)))) throw new Error('凝彩图片池无效。');

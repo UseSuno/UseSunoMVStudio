@@ -7,7 +7,7 @@ import type { Project } from '../domain/model';
 import { compileProject } from '../renderer/compile';
 import { drawFrame } from '../renderer/draw';
 // Offline frame generation uses the same renderer as the editor.
-export interface ExportOptions { textCache?: boolean; captureMethod?: 'standard' | 'native' | 'direct' | 'worker' | 'layered'; height: number; fps: number; start: number; end: number; format: 'mp4' | 'webm' }
+export interface ExportOptions { textCache?: boolean; captureMethod?: 'standard' | 'native' | 'direct' | 'worker' | 'layered'; height: number; fps: number; start: number; end: number; format: 'mp4' | 'webm'; transparent?: boolean }
 export async function supportedFormats(width: number, height: number, buffer: AudioBuffer) {
   const [avc, aac, vp9, opus] = await Promise.all([
     canEncodeVideo('avc', { width, height, bitrate: height >= 1080 ? 10_000_000 : 5_000_000 }), canEncodeAudio('aac', { sampleRate: buffer.sampleRate, numberOfChannels: buffer.numberOfChannels }),
@@ -27,7 +27,12 @@ export async function exportVideo(project: Project, buffer: AudioBuffer, peaks: 
   const ctx = canvas.getContext('2d')!;
   const target = new BufferTarget();
   const output = new Output({ format: options.format === 'mp4' ? new Mp4OutputFormat() : new WebMOutputFormat(), target });
-  const video = new CanvasSource(canvas, { codec: options.format === 'mp4' ? 'avc' : 'vp9', bitrate: options.height >= 1080 ? 10_000_000 : 5_000_000, keyFrameInterval: 2 });
+  const video = new CanvasSource(canvas, {
+    codec: options.format === 'mp4' ? 'avc' : 'vp9',
+    alpha: options.transparent ? 'keep' : 'discard',
+    bitrate: options.height >= 1080 ? 10_000_000 : 5_000_000,
+    keyFrameInterval: 2,
+  });
   const audio = new AudioBufferSource({ codec: options.format === 'mp4' ? 'aac' : 'opus', bitrate: 192_000 });
   output.addVideoTrack(video, { frameRate: options.fps }); output.addAudioTrack(audio);
   let meter: ReturnType<typeof frameProgress> | undefined;
@@ -40,7 +45,7 @@ export async function exportVideo(project: Project, buffer: AudioBuffer, peaks: 
     let audioCursor = startSample;
     for (let frame = 0; frame < totalFrames; frame++) {
       await waitUntilVisible(signal); check(); const time = frame / options.fps;
-      drawFrame(ctx, plan, options.start + time);
+      drawFrame(ctx, plan, options.start + time, options.transparent);
       await video.add(time, Math.min(1 / options.fps, duration - time));
       // Interleave PCM chunks to keep the muxer from buffering an entire audio track.
       const audioUntil = Math.min(endSample, startSample + Math.round((time + 1 / options.fps) * buffer.sampleRate));

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /folia.html
+Disallow: /source/
+
+Sitemap: https://usesuno.com/sitemap.xml

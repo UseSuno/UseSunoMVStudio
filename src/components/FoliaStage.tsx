@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { dimensions, type Project } from '../domain/model';
 import type { PlaybackClock } from '../audio/clock';
 import { sampleAudioAnalysis, type AudioAnalysis } from '../audio/analysis';
@@ -9,8 +9,24 @@ export function FoliaStage({ project, audioAnalysis, clock, fontBlob, coverBlob,
   const host = useRef<HTMLDivElement>(null), frame = useRef<HTMLIFrameElement>(null), ready = useRef(false);
   const latest = useRef({ project, audioAnalysis }); latest.current = { project, audioAnalysis };
   const [w, h] = dimensions(project.ratio, 720);
-  const artwork = useMemo(() => ({ coverUrl: coverBlob ? URL.createObjectURL(coverBlob) : null, portraitUrl: monetPortraitBlob ? URL.createObjectURL(monetPortraitBlob) : null, customBackgroundUrl: customBackgroundBlob ? URL.createObjectURL(customBackgroundBlob) : null }), [coverBlob, monetPortraitBlob, customBackgroundBlob]);
-  useEffect(() => () => { if (artwork.coverUrl) URL.revokeObjectURL(artwork.coverUrl); if (artwork.portraitUrl) URL.revokeObjectURL(artwork.portraitUrl); if (artwork.customBackgroundUrl) URL.revokeObjectURL(artwork.customBackgroundUrl); }, [artwork]);
+  const [artwork, setArtwork] = useState<{ coverUrl: string | null; portraitUrl: string | null; customBackgroundUrl: string | null }>(() => ({
+    coverUrl: null,
+    portraitUrl: null,
+    customBackgroundUrl: null,
+  }));
+  useEffect(() => {
+    const urls = {
+      coverUrl: coverBlob ? URL.createObjectURL(coverBlob) : null,
+      portraitUrl: monetPortraitBlob ? URL.createObjectURL(monetPortraitBlob) : null,
+      customBackgroundUrl: customBackgroundBlob ? URL.createObjectURL(customBackgroundBlob) : null,
+    };
+    setArtwork(urls);
+    return () => {
+      if (urls.coverUrl) URL.revokeObjectURL(urls.coverUrl);
+      if (urls.portraitUrl) URL.revokeObjectURL(urls.portraitUrl);
+      if (urls.customBackgroundUrl) URL.revokeObjectURL(urls.customBackgroundUrl);
+    };
+  }, [coverBlob, monetPortraitBlob, customBackgroundBlob]);
   useEffect(() => {
     const resize = () => { if (!host.current || !frame.current) return; const r = host.current.getBoundingClientRect(); frame.current.style.transform = `translate(-50%,-50%) scale(${Math.min(r.width / w, r.height / h)})`; };
     const observer = new ResizeObserver(resize); if (host.current) observer.observe(host.current); resize(); return () => observer.disconnect();
