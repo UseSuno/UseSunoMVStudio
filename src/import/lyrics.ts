@@ -2,8 +2,16 @@ import type { LyricLine, Word } from '../domain/model';
 // Parse source timestamps without inventing word-level accuracy.
 const timestamp = /\[(\d+):(\d{2}(?:[.:]\d{1,3})?)\]/g;
 const seconds = (m: string, s: string) => Number(m) * 60 + Number(s.replace(/:(\d+)$/, '.$1'));
-export function parseLyrics(source: string, duration: number): { lines: LyricLine[]; warnings: string[] } {
+
+export interface LyricWarning {
+  key: string;
+  params?: Record<string, string | number>;
+  message: string;
+}
+
+export function parseLyrics(source: string, duration: number): { lines: LyricLine[]; warnings: string[]; warningKeys: LyricWarning[] } {
   const warnings: string[] = [];
+  const warningKeys: LyricWarning[] = [];
   const offset = Number(source.match(/\[offset:([+-]?\d+)\]/i)?.[1] || 0) / 1000;
   const lines: LyricLine[] = [];
   for (const raw of source.replace(/^\uFEFF/, '').split(/\r?\n/)) {
@@ -27,11 +35,24 @@ export function parseLyrics(source: string, duration: number): { lines: LyricLin
     const next = lines.slice(i + 1).find(x => x.start !== null && x.start > l.start!);
     l.end = Math.max(l.start + 0.1, Math.min(next?.start ?? duration, l.start + 8));
     l.words = l.words.map(w => ({ ...w, end: w.end < 0 ? l.end! : w.end }));
-    if (l.start >= duration) warnings.push(`「${l.text.slice(0, 12)}」超出音频时长，请校时。`);
+    if (l.start >= duration) {
+      const clip = l.text.slice(0, 12);
+      const msg = `「${clip}」超出音频时长，请校时。`;
+      warnings.push(msg);
+      warningKeys.push({ key: 'notice.lyricsWarningOutOfRange', params: { text: clip }, message: msg });
+    }
   }
-  if (lines.some(l => l.start === null)) warnings.push('无时间轴的歌词需要逐行打点，或先生成估算时间。');
-  if (lines.some(l => l.start !== null && !l.words.length)) warnings.push('句末时间由下一句推算，最长保留 8 秒；可在编辑器调整。');
-  return { lines, warnings };
+  if (lines.some(l => l.start === null)) {
+    const msg = '无时间轴的歌词需要逐行打点，或先生成估算时间。';
+    warnings.push(msg);
+    warningKeys.push({ key: 'notice.lyricsWarningUntimed', message: msg });
+  }
+  if (lines.some(l => l.start !== null && !l.words.length)) {
+    const msg = '句末时间由下一句推算，最长保留 8 秒；可在编辑器调整。';
+    warnings.push(msg);
+    warningKeys.push({ key: 'notice.lyricsWarningLineHold', message: msg });
+  }
+  return { lines, warnings, warningKeys };
 }
 export function estimateTiming(lines: LyricLine[], duration: number): LyricLine[] {
   const step = duration / Math.max(lines.length, 1);

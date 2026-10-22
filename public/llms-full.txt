@@ -6,7 +6,7 @@
 - Timing Editor: https://usesuno.com/timestamp.html
 - Repository: https://github.com/UseSuno/UseSunoMVStudio
 - License: AGPL-3.0-only
-- Version: 0.3.0
+- Version: 0.3.1
 
 ---
 

@@ -17,7 +17,7 @@ export function Stage({ project, peaks, audioAnalysis, clock, fontBlob, coverBlo
     const draw = () => { if (!alive) return; if (label.current) label.current.textContent = timeLabel(clock.tick()); id = requestAnimationFrame(draw); }; draw();
     return () => { alive = false; cancelAnimationFrame(id); };
   }, [clock]);
-  const toggle = () => playing ? clock.pause() : void clock.play().catch(e => onError(e.message));
+  const toggle = () => playing ? clock.pause() : void clock.play().catch(e => onError((e as Error).message === 'audio_missing' || (e as Error).message === '请先导入音频。' ? t('notice.audioRequired') : (e as Error).message));
   const [ratioWidth, ratioHeight] = project.ratio.split(':').map(Number);
   return <section className="stage-area">
     <div className="stage-toolbar"><span><i className="status-dot" /> {t('stage.live')}</span><div className="stage-view-controls"><div className="stage-ratio-options" role="group" aria-label={t('inspector.ratio')}>{(['16:9', '9:16', '1:1'] as const).map(ratio => <button key={ratio} type="button" aria-pressed={project.ratio === ratio} onClick={() => change({ ratio })}>{ratio}</button>)}</div><span className="stage-fit-label">{t('stage.fit')}</span></div><button className="icon-button" data-tooltip={t('stage.fullscreen')} aria-label={t('stage.fullscreen')} onClick={() => { void stage.current?.requestFullscreen().catch(e => onError(e.message)); }}><Maximize2 size={15}/></button></div>

@@ -9,7 +9,7 @@ export class PlaybackClock {
   attach(url: string, duration: number) { this.pause(); this.audio.src = url; this.duration = duration; this.seek(0); }
   seek(time: number) { this.time = Math.max(0, Math.min(this.duration, time)); if (this.audio.src) this.audio.currentTime = this.time; this.emit(); }
   tick() { if (this.playing) { this.time = this.audio.currentTime; if (this.loop && this.time >= this.loop[1]) this.seek(this.loop[0]); } return this.time; }
-  async play() { if (!this.audio.src) throw new Error('请先导入音频。'); if (this.time >= this.duration - 0.02) this.seek(0); await this.audio.play(); this.playing = true; this.emit(); }
+  async play() { if (!this.audio.src) throw new Error('audio_missing'); if (this.time >= this.duration - 0.02) this.seek(0); await this.audio.play(); this.playing = true; this.emit(); }
   pause() { this.audio.pause(); this.playing = false; this.emit(); }
   dispose() { this.pause(); this.audio.removeAttribute('src'); this.audio.load(); }
 }

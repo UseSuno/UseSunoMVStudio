@@ -94,8 +94,8 @@ export async function buildProjectArchive(project: Project, audio: Blob | null, 
   const data = zipSync(files, { level: 0 });
   return new Blob([data], { type: 'application/zip' });
 }
-export async function downloadProject(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null, cover?: Blob | null, monetPortrait?: Blob | null, customBackground?: Blob | null) {
-  downloadBlob(await buildProjectArchive(project, audio, includeAudio, font, cover, monetPortrait, customBackground), `${project.title || '作品'}.lyricmv`);
+export async function downloadProject(project: Project, audio: Blob | null, includeAudio: boolean, font?: Blob | null, cover?: Blob | null, monetPortrait?: Blob | null, customBackground?: Blob | null, defaultTitle?: string) {
+  downloadBlob(await buildProjectArchive(project, audio, includeAudio, font, cover, monetPortrait, customBackground), `${project.title || defaultTitle || 'Project'}.lyricmv`);
 }
 export async function readProject(file: File): Promise<SavedProject> {
   if (file.size > 200 * 1024 * 1024) throw new Error('工程文件超过 200 MB，请使用较小的素材。');

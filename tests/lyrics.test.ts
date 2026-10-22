@@ -33,7 +33,40 @@ it('accepts Google and local font selections', () => {
   expect(fontFamily(local)).toBe('My Font');
 });
 
-import { normalizeEmbedded, realignTimedLinesToPlain } from '../src/import/embedded';
+import { formatCandidateLabel, normalizeEmbedded, realignTimedLinesToPlain } from '../src/import/embedded';
+import i18n from '../src/i18n';
+
+describe('lyric import internationalization', () => {
+  it('provides structured warning keys and translates untimed lyrics notice into English', async () => {
+    await i18n.changeLanguage('en');
+    const parsed = parseLyrics('Line 1\nLine 2', 30);
+    expect(parsed.warningKeys).toHaveLength(1);
+    expect(parsed.warningKeys[0].key).toBe('notice.lyricsWarningUntimed');
+
+    const warningText = i18n.t(parsed.warningKeys[0].key);
+    expect(warningText).toBe('Untimed lyrics need line-by-line timing or estimated timing.');
+    expect(/[\u4e00-\u9fa5]/.test(warningText)).toBe(false);
+
+    const toastMessage = i18n.t('notice.lyricsImported', {
+      count: parsed.lines.length,
+      warning: warningText,
+    });
+    expect(toastMessage).toBe('Imported 2 lyric lines. Untimed lyrics need line-by-line timing or estimated timing.');
+    expect(/[\u4e00-\u9fa5]/.test(toastMessage)).toBe(false);
+  });
+
+  it('formats embedded candidates with localized strings', async () => {
+    await i18n.changeLanguage('en');
+    const candidates = normalizeEmbedded([
+      { timeStampFormat: 2, syncText: [{ text: 'a', timestamp: 1000 }] },
+      { text: 'plain lyrics' }
+    ]);
+    const label = formatCandidateLabel(candidates[0], i18n.t.bind(i18n));
+    expect(label).toBe('Unlabeled · Synchronized snippets (check line breaks)');
+    expect(/[\u4e00-\u9fa5]/.test(label)).toBe(false);
+  });
+});
+
 describe('embedded synchronization', () => {
   it('aligns per-glyph SYLT to matching unsynchronized line breaks', () => {
     const candidates = normalizeEmbedded([{ timeStampFormat: 2, syncText: [{text:'风',timestamp:1000},{text:'来',timestamp:1300},{text:'了',timestamp:1600},{text:'你',timestamp:3000},{text:'好',timestamp:3400}] }, {text:'风来了\n你好'}]);

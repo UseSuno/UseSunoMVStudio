@@ -174,7 +174,12 @@ export function TimestampApp() {
       projectRef.current.lines.forEach(line => parseSegmentationDraft(segments[line.id] ?? segmentationDraft(line.text, line.wordSegments), line.text));
       await persistTiming(tokens, true);
       setMessage(t('timestamp.saveDone')); return true;
-    } catch (error) { setMessage(error instanceof Error ? error.message : t('timestamp.saveFailed')); return false; }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      const isPhrasingError = msg.includes('分段后的文字') || msg === 'phrasing_invalid';
+      setMessage(isPhrasingError ? t('phrasing.invalid') : (error instanceof Error ? error.message : t('timestamp.saveFailed')));
+      return false;
+    }
   };
   const exportLrc = () => {
     if (!project) return;
